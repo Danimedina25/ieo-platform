@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { listAssessmentMetadata } from "@/application/assessments";
+import { listCreationOrganizations } from "@/application/workspace";
+import { CreateAssessment } from "@/components/create-assessment";
 import { requestToken, requirePageUser } from "@/lib/server-session";
 export default async function AssessmentsPage() {
   await requirePageUser();
-  const assessments = await listAssessmentMetadata(await requestToken());
+  const token = await requestToken();
+  const [assessments, organizations] = await Promise.all([listAssessmentMetadata(token), listCreationOrganizations(token)]);
   return <>
     <div className="mb-8 flex flex-wrap items-start justify-between gap-5"><div><h1 className="text-3xl font-semibold tracking-tight">Diagnósticos</h1><p className="mt-3 text-slate-600">Consulta los diagnósticos a los que tienes acceso.</p></div>
-      <div><button disabled className="min-h-11 rounded-md border border-slate-300 bg-slate-100 px-4 text-sm font-semibold text-slate-500" aria-describedby="next-phase">Nuevo diagnóstico</button><p id="next-phase" className="mt-2 text-xs text-slate-600">Disponible en la siguiente fase.</p></div>
+      {organizations.length > 0 && <CreateAssessment organizations={organizations} />}
     </div>
     {assessments.length === 0 ? <p className="rounded-lg border border-slate-200 bg-white p-8 text-slate-600">Todavía no existen diagnósticos.</p> :
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white"><table className="w-full text-left text-sm"><caption className="sr-only">Diagnósticos autorizados</caption>

@@ -1,8 +1,8 @@
 # Arquitectura propuesta — Sistema Digital IEO®
 
-> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementa únicamente login local, sesiones, membresías organizacionales, metadata de diagnósticos y auditoría básica con seis entidades. OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento/worker, revisiones detalladas y correo: **Deferred / Not implemented in Phase 1**. El alcance vigente está en [PHASE1_DECISIONS.md](PHASE1_DECISIONS.md); las rutas y entidades futuras de este documento no implican implementación actual.
+> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementó login y seis entidades; Phase 2 agregó el workspace DRAFT y dos entidades (AssessmentPerspective, Segment). OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento/worker, revisiones detalladas y correo: **Deferred / Not implemented in Phase 1**. El alcance vigente está en [PHASE2_DECISIONS.md](PHASE2_DECISIONS.md); las rutas y entidades futuras de este documento no implican implementación actual.
 
-Estado: Phase 0, propuesta para revisión. Revisión documental final: 2026-09-24. No existe aplicación, API, esquema ejecutable ni proyecto Next.js. La documentación metodológica es la fuente de verdad; las decisiones técnicas de este documento son propuestas y no reglas nuevas del IEO®.
+Estado: diseño objetivo de Phase 0, revisión documental final 2026-09-24. Phase 1 y Phase 2 ya cuentan con implementación incremental; ver PHASE1_DECISIONS.md y PHASE2_DECISIONS.md. La documentación metodológica es la fuente de verdad; las decisiones técnicas aquí propuestas no son reglas nuevas del IEO®.
 
 ## Fuentes estudiadas y precedencia
 

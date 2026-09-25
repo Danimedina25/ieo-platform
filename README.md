@@ -59,7 +59,7 @@ Compose contiene únicamente `mysql:8.4.10`, puerto local 3307 y volumen persist
 
 Alternativa: MySQL 8 local ya instalado, con tres bases dedicadas y permisos equivalentes. Nunca ejecutar pruebas sobre una DB cliente. En esta máquina se verificó MySQL 8.4.10 oficial aislado en /tmp, ya que Docker no está instalado; Compose no se ejecutó aquí. La instancia de validación y el `.env` temporal no sustituyen tu configuración de desarrollo.
 
-Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Seis tablas de aplicación: User, AdminSession, Organization, OrganizationMembership, Assessment, AuditLog; más `_prisma_migrations` administrada por Prisma.
+Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Ocho tablas de aplicación: las seis de Phase 1 más AssessmentPerspective y Segment; `_prisma_migrations` pertenece a Prisma.
 
 ## Prisma migrations
 
@@ -91,7 +91,7 @@ Falla si faltan credenciales válidas, no está ALLOW_DEVELOPMENT_SEED=true o NO
 | coordinador@ieo.local | ORG_COORDINATOR, organización A |
 | consultor2@ieo.local | IEO_CONSULTANT, organización B |
 
-Admin usa SEED_ADMIN_PASSWORD; los otros tres usan SEED_USER_PASSWORD. Crea Organización Demo A/B y un diagnóstico DRAFT por organización, periodo 2026. Todos los datos son sintéticos.
+Admin usa SEED_ADMIN_PASSWORD; los otros tres usan SEED_USER_PASSWORD. Crea Organización Demo A/B, un diagnóstico DRAFT por organización y cinco perspectivas inicialmente sin configurar por diagnóstico, periodo 2026. Todos los datos son sintéticos.
 
 ## Development
 
@@ -99,7 +99,7 @@ Admin usa SEED_ADMIN_PASSWORD; los otros tres usan SEED_USER_PASSWORD. Crea Orga
 npm run dev
 ```
 
-Rutas: `/` redirige según sesión; `/login`; `/diagnosticos`; `/diagnosticos/[id]`. Mutaciones exclusivamente POST: `/api/auth/login`, `/api/auth/logout`. Detalle de organización ajena devuelve 404. No hay creación de diagnóstico, tabs ni operaciones metodológicas.
+Rutas: `/` redirige según sesión; `/login`; `/diagnosticos`; `/diagnosticos/[id]?tab=general|perspectivas`. Login/logout son POST; las APIs del workspace usan POST/PATCH/DELETE. Consultores crean organización/diagnóstico y editan General, perspectivas y segmentos. Coordinadores consultan. TECH_ADMIN sin membresía ve metadata técnica. Detalle de organización ajena devuelve 404. Los diagnósticos permanecen DRAFT.
 
 Estructura: `src/app` rutas/layouts, `components` formulario utilizado, `domain` reglas puras, `application` autenticación/autorización/consultas, `infrastructure` Prisma/Argon2/tokens/limitador, `lib` configuración y HTTP. Los casos de uso se ejecutan en servidor; la UI recibe metadata mínima.
 
@@ -117,7 +117,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Integración y E2E requieren MySQL real. `test:db:prepare` migra y aplica seed a TEST_DATABASE_URL; exige sufijo `_test` y separación de DATABASE_URL. Reaplicarlo antes de E2E restaura fixtures después de integración. Ejecutar suites DB secuencialmente. Playwright inicia build de producción en localhost:3100 con DB de pruebas; no reutiliza servidor de desarrollo. La cookie Secure se prueba en localhost como contexto permitido por Chromium. Traces están desactivadas para evitar capturar credenciales de login.
+Integración y E2E requieren MySQL real. `test:db:prepare` migra, verifica el nombre y **borra sólo los datos de la base dedicada TEST_DATABASE_URL** antes de aplicar seed; exige sufijo `_test` y separación de DATABASE_URL. Reaplicarlo antes de E2E restaura fixtures después de integración. No apuntar TEST_DATABASE_URL a datos que se deban conservar. Ejecutar suites DB secuencialmente. Playwright inicia build de producción en localhost:3100 con DB de pruebas; no reutiliza servidor de desarrollo. La cookie Secure se prueba en localhost como contexto permitido por Chromium. Traces están desactivadas para evitar capturar credenciales de login.
 
 ## Build
 
@@ -130,13 +130,12 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 
 ## Current implementation status
 
-**Phase 1 completed.** Login, permisos, MySQL y logout verificados; lint, typecheck, 10 unitarias, 9 integración, 9 E2E y build PASS. Consulta [evidencia y limitaciones](docs/PHASE1_VALIDATION.md).
-
-Únicamente base, seis entidades, login, sesiones, permisos, listado/detalle mínimo y auditoría básica. Phase 2 no iniciada. GAP-001–GAP-013 siguen abiertos.
+**Phase 1 completed. Phase 2 completed.** Se puede crear un borrador, crear una organización desde ese flujo, guardar General, configurar las cinco perspectivas y gestionar segmentos. El diagnóstico no puede abrirse. Los resultados de pruebas y límites están en [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md); Phase 1 conserva su [validación](docs/PHASE1_VALIDATION.md). GAP-001–GAP-013 siguen abiertos.
 
 ## Documentación
 
 - [Decisiones y alcance de Phase 1](docs/PHASE1_DECISIONS.md)
+- [Decisiones de Phase 2](docs/PHASE2_DECISIONS.md) y [validación](docs/PHASE2_VALIDATION.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)
@@ -144,4 +143,4 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 - [Pantallas](docs/SCREEN_MAP.md), [rutas](docs/ROUTES.md), [fases](docs/IMPLEMENTATION_PLAN.md)
 - [Dudas metodológicas](docs/METHODOLOGY_GAPS.md)
 
-Los 12 originales permanecen directamente en docs; no existe docs/requirements. Sus hashes están en ARCHITECTURE.md. No se modifican reglas IEO® en Phase 1.
+Los 12 originales permanecen directamente en docs; no existe docs/requirements. Sus hashes están en ARCHITECTURE.md. No se modifican reglas IEO® en Phase 1 ni Phase 2.

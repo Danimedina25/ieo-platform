@@ -1,6 +1,6 @@
 # Mapa de pantallas y dirección visual
 
-> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementa únicamente login local, sesiones, membresías organizacionales, metadata de diagnósticos y auditoría básica con seis entidades. OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento/worker, revisiones detalladas y correo: **Deferred / Not implemented in Phase 1**. El alcance vigente está en [PHASE1_DECISIONS.md](PHASE1_DECISIONS.md); las rutas y entidades futuras de este documento no implican implementación actual.
+> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementó login y seis entidades; Phase 2 agregó el workspace DRAFT y dos entidades (AssessmentPerspective, Segment). OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento/worker, revisiones detalladas y correo: **Deferred / Not implemented in Phase 1**. El alcance vigente está en [PHASE2_DECISIONS.md](PHASE2_DECISIONS.md); las rutas y entidades futuras de este documento no implican implementación actual.
 
 Propuesta: **10 vistas principales**, con cinco dentro del mismo workspace. No se añaden pantallas independientes para cada perspectiva, Elemento, incidencia o cuestionario. Auditoría es un panel del workspace. Fuentes S01, S02 y S06 en [ARCHITECTURE.md](ARCHITECTURE.md); controles completos en [SECURITY.md](SECURITY.md).
 

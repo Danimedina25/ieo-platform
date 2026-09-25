@@ -37,7 +37,7 @@ test("E2E-005 logout revoca bearer anterior", async ({ page, context }) => {
 });
 test("coordinador no accede a B", async ({ page }) => {
   await signIn(page, "coordinador@ieo.local");
-  await expect(page.getByText("Organización Demo A", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Organización Demo A" }).first()).toBeVisible();
   expect((await page.goto(`/diagnosticos/${demoIds.assessmentB}`))?.status()).toBe(404);
 });
 test("login error genérico", async ({ page }) => {
@@ -58,5 +58,5 @@ test("login móvil con teclado", async ({ page }) => {
   await expect(page.getByLabel("Contraseña", { exact: true })).toBeFocused();
   await page.keyboard.type(env.SEED_USER_PASSWORD); await page.keyboard.press("Tab"); await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/diagnosticos$/);
-  await expect(page.getByText("Organización Demo B", { exact: true })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Organización Demo B" })).toBeVisible();
 });

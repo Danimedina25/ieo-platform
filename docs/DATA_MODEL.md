@@ -217,3 +217,13 @@ El esquema ejecutable es `prisma/schema.prisma`; la migración inicial está ver
 | AuditLog | UUID, organizationId/assessmentId/actorUserId opcionales, action, entityType, entityId opcional, metadataJson opcional, createdAt; FKs y relación compuesta organización/diagnóstico para impedir mezcla de tenants; índices por organización/diagnóstico/fecha y actor/fecha |
 
 Todas usan InnoDB/utf8mb4 y relaciones reales con borrado Restrict. `_prisma_migrations` es tabla interna de la herramienta. No Invitation, ResponseSession ni Response existen aún. Los DTO de metadata contienen únicamente id, name, period, status y nombre de organización.
+
+## Esquema ejecutable añadido en Phase 2
+
+`prisma/migrations/20260925183711_phase2_diagnosis_workspace/migration.sql` amplía Assessment con `objective`, `timezone`, `plannedOpensAt`, `plannedClosesAt`, `scopeUnitsText`, `sponsorName`, `consultantUserId`, `coordinatorUserId`, `methodologyNotes`. Los dos responsables son FK opcionales a User; su rol y organización se validan en el caso de uso.
+
+`AssessmentPerspective`: UUID, FK Assessment, código DIR/ESP/LID/COL/CLI, aplicabilidad nullable APPLICABLE/NOT_APPLICABLE/NOT_AVAILABLE, población entera nullable, plan CENSUS/SAMPLE nullable, notas, unidad CLI B2B/B2C nullable, timestamps. UNIQUE(assessmentId,perspectiveCode). Se crean cinco filas en una transacción y la migración añade cinco a cada Assessment previo. CHECK de MySQL 8 impide población negativa, B2B/B2C fuera de CLI y población/plan en estados distintos de APPLICABLE. NULL significa sólo captura pendiente.
+
+`Segment`: UUID, FK Assessment, dimensión libre validada, etiqueta, reportabilidad PENDING/REPORTABLE/NOT_REPORTABLE con default PENDING, motivo, active, timestamps. UNIQUE(assessmentId,dimension,label), índice(assessmentId,active). Desactivar conserva la fila. El estado declarado no constituye una revisión de riesgo ni permiso automático de exportación.
+
+Estas son las únicas dos tablas de aplicación añadidas en Phase 2. No existen tablas de participantes, catálogo, respuestas ni resultados. Las FK, InnoDB y utf8mb4 se conservan.

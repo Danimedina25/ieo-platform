@@ -117,3 +117,17 @@ Mutaciones metodológicas incluyen `expectedVersion`; envío/procesamiento/impor
 | /api/auth/logout | POST | Origin, revocación servidor, borrado cookie, 303 login |
 
 No APIs CRUD, server actions futuras, rutas de participante ni rutas metodológicas están implementadas. GET de las mutaciones devuelve 405.
+
+## Rutas añadidas en Phase 2
+
+| Ruta | Método | Permiso y acción |
+|---|---|---|
+| `/diagnosticos/[id]?tab=general` | GET | Workspace editable para consultor; consulta para coordinador; TECH_ADMIN sin membresía ve ficha mínima |
+| `/diagnosticos/[id]?tab=perspectivas` | GET | Cinco perspectivas y segmentos en el mismo workspace |
+| `/api/assessments` | POST | Consultor: crear diagnóstico en organización propia o crear organización + membresía + diagnóstico + cinco perspectivas |
+| `/api/assessments/[id]/general` | PATCH | Consultor activo de la organización: guardar General DRAFT |
+| `/api/assessments/[id]/perspectives/[code]` | PATCH | Consultor: configurar DIR/ESP/LID/COL/CLI DRAFT |
+| `/api/assessments/[id]/segments` | POST | Consultor: agregar segmento DRAFT |
+| `/api/assessments/[id]/segments/[segmentId]` | PATCH/DELETE | Consultor: editar o desactivar, sin borrado físico |
+
+No hay APIs de participantes, instrumentos o transición OPEN. Todas las mutaciones comprueban Origin, sesión, organización, rol, entrada y estado de servidor.

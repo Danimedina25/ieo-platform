@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { hashPassword } from "../src/infrastructure/auth/password";
+import { perspectiveCodes } from "../src/domain/assessment/schemas";
 import { normalizeEmail } from "../src/domain/auth";
 export const demoIds = {
   organizationA: "a1000000-0000-4000-8000-000000000001",
@@ -42,6 +43,7 @@ export async function seedDemo(client: PrismaClient) {
     }
     for (const [id, organizationId, name] of [[demoIds.assessmentA, demoIds.organizationA, "Diagnóstico Demo A 2026"], [demoIds.assessmentB, demoIds.organizationB, "Diagnóstico Demo B 2026"]]) {
       await tx.assessment.upsert({ where: { id }, create: { id, organizationId, name, period: "2026", status: "DRAFT" }, update: { name, period: "2026" } });
+      await tx.assessmentPerspective.createMany({ data: perspectiveCodes.map(perspectiveCode => ({ assessmentId: id, perspectiveCode })), skipDuplicates: true });
     }
   });
 }

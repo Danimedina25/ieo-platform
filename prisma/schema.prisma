@@ -23,7 +23,39 @@ enum OrganizationRole {
 enum AssessmentStatus {
   DRAFT
 }
+enum PerspectiveCode {
+  DIR
+  ESP
+  LID
+  COL
+  CLI
+}
+enum PerspectiveApplicability {
+  APPLICABLE
+  NOT_APPLICABLE
+  NOT_AVAILABLE
+}
+enum CollectionMode {
+  CENSUS
+  SAMPLE
+}
+enum CliUnitType {
+  B2B
+  B2C
+}
+enum ReportabilityStatus {
+  PENDING
+  REPORTABLE
+  NOT_REPORTABLE
+}
 enum AuditAction {
+  ORGANIZATION_CREATED
+  ASSESSMENT_CREATED
+  ASSESSMENT_UPDATED
+  PERSPECTIVE_UPDATED
+  SEGMENT_CREATED
+  SEGMENT_UPDATED
+  SEGMENT_DEACTIVATED
   ADMIN_LOGIN
   ADMIN_LOGOUT
   LOGIN_FAILED
@@ -42,6 +74,8 @@ model User {
   sessions       AdminSession[]
   memberships    OrganizationMembership[]
   auditLogs      AuditLog[]
+  consultantAssessments Assessment[] @relation("AssessmentConsultant")
+  coordinatorAssessments Assessment[] @relation("AssessmentCoordinator")
 }
 
 model AdminSession {
@@ -85,10 +119,25 @@ model Assessment {
   name           String           @db.VarChar(160)
   period         String           @db.VarChar(80)
   status         AssessmentStatus @default(DRAFT)
+  objective      String?          @db.Text
+  timezone       String?          @db.VarChar(64)
+  plannedOpensAt DateTime?        @db.DateTime(3)
+  plannedClosesAt DateTime?       @db.DateTime(3)
+  scopeUnitsText String?          @db.Text
+  sponsorName    String?          @db.VarChar(160)
+  consultantUserId String?        @db.Char(36)
+  coordinatorUserId String?       @db.Char(36)
+  methodologyNotes String?        @db.Text
   createdAt      DateTime         @default(now()) @db.DateTime(3)
   updatedAt      DateTime         @updatedAt @db.DateTime(3)
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   auditLogs      AuditLog[]
+  consultant     User?            @relation("AssessmentConsultant", fields: [consultantUserId], references: [id], onDelete: Restrict)
+  coordinator    User?            @relation("AssessmentCoordinator", fields: [coordinatorUserId], references: [id], onDelete: Restrict)
+  perspectives   AssessmentPerspective[]
+  segments       Segment[]
+  @@index([consultantUserId])
+  @@index([coordinatorUserId])
   @@unique([organizationId, id])
   @@index([organizationId, createdAt])
 }
@@ -108,4 +157,34 @@ model AuditLog {
   actor          User?       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
   @@index([organizationId, assessmentId, createdAt])
   @@index([actorUserId, createdAt])
+}
+
+model AssessmentPerspective {
+  id                 String                    @id @default(uuid()) @db.Char(36)
+  assessmentId       String                    @db.Char(36)
+  perspectiveCode    PerspectiveCode
+  applicability      PerspectiveApplicability?
+  populationEstimate Int?
+  collectionMode     CollectionMode?
+  notes              String?                   @db.Text
+  cliUnitType        CliUnitType?
+  createdAt          DateTime                  @default(now()) @db.DateTime(3)
+  updatedAt          DateTime                  @updatedAt @db.DateTime(3)
+  assessment         Assessment                @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  @@unique([assessmentId, perspectiveCode])
+}
+
+model Segment {
+  id                  String              @id @default(uuid()) @db.Char(36)
+  assessmentId        String              @db.Char(36)
+  dimension           String              @db.VarChar(80)
+  label               String              @db.VarChar(160)
+  reportabilityStatus ReportabilityStatus @default(PENDING)
+  reason              String?             @db.Text
+  active              Boolean             @default(true)
+  createdAt           DateTime            @default(now()) @db.DateTime(3)
+  updatedAt           DateTime            @updatedAt @db.DateTime(3)
+  assessment          Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  @@unique([assessmentId, dimension, label])
+  @@index([assessmentId, active])
 }
