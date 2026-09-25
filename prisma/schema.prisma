@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider     = "mysql"
+  relationMode = "foreignKeys"
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+enum OrganizationStatus {
+  ACTIVE
+  INACTIVE
+}
+enum OrganizationRole {
+  IEO_CONSULTANT
+  ORG_COORDINATOR
+}
+enum AssessmentStatus {
+  DRAFT
+}
+enum AuditAction {
+  ADMIN_LOGIN
+  ADMIN_LOGOUT
+  LOGIN_FAILED
+  USER_DISABLED_SESSION_REJECTED
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Char(36)
+  email          String     @unique @db.VarChar(254)
+  name           String?    @db.VarChar(120)
+  passwordHash   String     @db.VarChar(255)
+  status         UserStatus @default(ACTIVE)
+  technicalAdmin Boolean    @default(false)
+  createdAt      DateTime   @default(now()) @db.DateTime(3)
+  updatedAt      DateTime   @updatedAt @db.DateTime(3)
+  sessions       AdminSession[]
+  memberships    OrganizationMembership[]
+  auditLogs      AuditLog[]
+}
+
+model AdminSession {
+  id         String    @id @default(uuid()) @db.Char(36)
+  userId     String    @db.Char(36)
+  tokenHash  String    @unique @db.Char(64)
+  expiresAt  DateTime  @db.DateTime(3)
+  lastSeenAt DateTime  @db.DateTime(3)
+  revokedAt  DateTime? @db.DateTime(3)
+  createdAt  DateTime  @default(now()) @db.DateTime(3)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@index([userId, expiresAt])
+}
+
+model Organization {
+  id          String             @id @default(uuid()) @db.Char(36)
+  name        String             @db.VarChar(160)
+  status      OrganizationStatus @default(ACTIVE)
+  createdAt   DateTime           @default(now()) @db.DateTime(3)
+  updatedAt   DateTime           @updatedAt @db.DateTime(3)
+  memberships OrganizationMembership[]
+  assessments Assessment[]
+  auditLogs   AuditLog[]
+}
+
+model OrganizationMembership {
+  organizationId String           @db.Char(36)
+  userId         String           @db.Char(36)
+  role           OrganizationRole
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now()) @db.DateTime(3)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  @@id([organizationId, userId, role])
+  @@index([userId, active])
+}
+
+model Assessment {
+  id             String           @id @default(uuid()) @db.Char(36)
+  organizationId String           @db.Char(36)
+  name           String           @db.VarChar(160)
+  period         String           @db.VarChar(80)
+  status         AssessmentStatus @default(DRAFT)
+  createdAt      DateTime         @default(now()) @db.DateTime(3)
+  updatedAt      DateTime         @updatedAt @db.DateTime(3)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  auditLogs      AuditLog[]
+  @@unique([organizationId, id])
+  @@index([organizationId, createdAt])
+}
+
+model AuditLog {
+  id             String      @id @default(uuid()) @db.Char(36)
+  organizationId String?     @db.Char(36)
+  assessmentId   String?     @db.Char(36)
+  actorUserId    String?     @db.Char(36)
+  action         AuditAction
+  entityType     String      @db.VarChar(40)
+  entityId       String?     @db.Char(36)
+  metadataJson   Json?
+  createdAt      DateTime    @default(now()) @db.DateTime(3)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  assessment     Assessment? @relation(fields: [organizationId, assessmentId], references: [organizationId, id], onDelete: Restrict)
+  actor          User?       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@index([organizationId, assessmentId, createdAt])
+  @@index([actorUserId, createdAt])
+}

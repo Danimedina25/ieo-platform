@@ -1,0 +1,55 @@
+{
+  "name": "ieo-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "next typegen && tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "test": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:db:prepare": "tsx scripts/prepare-test-db.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "argon2": "0.45.1",
+    "dotenv": "18.0.3",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.88.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.13.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.6",
+    "prisma": "7.10.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  },
+  "overrides": {
+    "mariadb": "3.5.4",
+    "mysql2": "3.24.4",
+    "deepmerge-ts": "8.0.2"
+  }
+}

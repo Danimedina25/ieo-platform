@@ -1,0 +1,2 @@
+"use client";
+export default function ErrorPage({ reset }: { reset: () => void }) { return <section className="mx-auto max-w-xl px-6 py-20"><h1 className="text-2xl font-semibold">No pudimos completar la solicitud</h1><p className="my-5 text-slate-600">Intenta nuevamente en unos momentos.</p><button onClick={reset} className="rounded-md bg-slate-900 px-5 py-3 text-white">Reintentar</button></section>; }
