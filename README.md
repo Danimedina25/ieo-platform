@@ -6,7 +6,7 @@ Proyecto para ejecutar digitalmente el diagnóstico del Índice de Erosión Orga
 
 ## Requirements
 
-Node.js 24 LTS (validado: 24.21.0), npm y MySQL 8.x/InnoDB/utf8mb4. Docker Compose es una opción para MySQL local, no para Next.js. Chromium se instala con Playwright. No se requiere SMTP.
+Node.js 24 LTS (validado: 24.21.0), npm y MySQL 8.x/InnoDB/utf8mb4. Docker Compose es una opción para MySQL local, no para Next.js. Chromium se instala con Playwright. SMTP se requiere para invitaciones reales; el provider consola es sólo desarrollo y el provider archivo sólo E2E local.
 
 Stack: Next.js 16.3.6 App Router, React 19.3.0, TypeScript 5.9.3 estricto, Tailwind 4.3.3, Prisma 7.10.0, Zod 4.6.5, React Hook Form 7.88.0, Argon2 0.45.1, Vitest 5.0.1 y Playwright 1.63.0. Componentes HTML accesibles propios; sin Auth.js. Versiones fijadas en package-lock.json. Webpack se usa explícitamente por incompatibilidad de Turbopack con puertos internos del entorno de validación.
 
@@ -50,6 +50,13 @@ Abre http://localhost:3000/login. El seed exige habilitación explícita y passw
 | SEED_ADMIN_PASSWORD / SEED_USER_PASSWORD | Elegir contraseñas de 12–128 caracteres; no hay valor automático |
 | ALLOW_DEVELOPMENT_SEED | Cambiar a true solo para aplicar seed sintético |
 | E2E_PORT | 3100 por defecto; proceso E2E independiente |
+| PARTICIPANT_ENCRYPTION_KEY | 32 bytes base64url para email y texto abierto; conservar para poder descifrar históricos |
+| PARTICIPANT_LOOKUP_SECRET | 32 bytes base64url distintos para HMAC de búsqueda de email |
+| OTP_HMAC_SECRET | 32 bytes base64url distintos para HMAC de OTP |
+| EMAIL_PROVIDER | `smtp` en producción; `console` sólo desarrollo; `file` sólo E2E local con base `_test` |
+| TECHNICAL_INVITE_ALLOWED_EMAILS | Lista de direcciones exactas del equipo para Phase 3A; `.test` e `ieo.local` se admiten como sintéticas |
+| SMTP_HOST / SMTP_PORT / SMTP_SECURE / SMTP_USER / SMTP_PASSWORD / SMTP_FROM | Transporte y remitente SMTP cuando EMAIL_PROVIDER=`smtp` |
+| E2E_MODE / E2E_MAILBOX_PATH | Exclusivos de Playwright; archivo temporal con permiso 0600 |
 
 Codifica caracteres reservados de passwords en las URLs MySQL (percent-encoding). No confundir AUTH_SECRET con passwords seed. Cambiar AUTH_SECRET reinicia claves del limitador, no revoca sesiones; para revocarlas se actualiza revokedAt en DB por operación administrativa controlada. No hay panel de usuarios ni recuperación de password en esta fase.
 
@@ -59,7 +66,7 @@ Compose contiene únicamente `mysql:8.4.10`, puerto local 3307 y volumen persist
 
 Alternativa: MySQL 8 local ya instalado, con tres bases dedicadas y permisos equivalentes. Nunca ejecutar pruebas sobre una DB cliente. En esta máquina se verificó MySQL 8.4.10 oficial aislado en /tmp, ya que Docker no está instalado; Compose no se ejecutó aquí. La instancia de validación y el `.env` temporal no sustituyen tu configuración de desarrollo.
 
-Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Ocho tablas de aplicación: las seis de Phase 1 más AssessmentPerspective y Segment; `_prisma_migrations` pertenece a Prisma.
+Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Catorce tablas de aplicación: ocho de Phase 1/2 y seis de Phase 3A. `_prisma_migrations` pertenece a Prisma. Phase 3A añade CHECK de `isTest=true` y forma de respuesta en MySQL 8.
 
 ## Prisma migrations
 
@@ -99,7 +106,7 @@ Admin usa SEED_ADMIN_PASSWORD; los otros tres usan SEED_USER_PASSWORD. Crea Orga
 npm run dev
 ```
 
-Rutas: `/` redirige según sesión; `/login`; `/diagnosticos`; `/diagnosticos/[id]?tab=general|perspectivas`. Login/logout son POST; las APIs del workspace usan POST/PATCH/DELETE. Consultores crean organización/diagnóstico y editan General, perspectivas y segmentos. Coordinadores consultan. TECH_ADMIN sin membresía ve metadata técnica. Detalle de organización ajena devuelve 404. Los diagnósticos permanecen DRAFT.
+Rutas: `/` redirige según sesión; `/login`; `/diagnosticos`; `/diagnosticos/[id]?tab=general|perspectivas|participantes`; `/r/[token]`, `/r/acceso`, `/r/introduccion`, `/r/cuestionario`, `/r/gracias`. Login/logout son POST; las APIs del workspace usan POST/PATCH/DELETE. Consultores crean organización/diagnóstico y editan General, perspectivas y segmentos. Coordinadores consultan. TECH_ADMIN sin membresía ve metadata técnica. Detalle de organización ajena devuelve 404. Los diagnósticos permanecen DRAFT. Sólo el consultor miembro ve la pestaña Participantes, crea/reemite/cancela invitaciones y ve correos operativos. La persona participante no tiene cuenta User: verifica OTP y responde sólo el fixture sintético TECH-SURVEY-01.
 
 Estructura: `src/app` rutas/layouts, `components` formulario utilizado, `domain` reglas puras, `application` autenticación/autorización/consultas, `infrastructure` Prisma/Argon2/tokens/limitador, `lib` configuración y HTTP. Los casos de uso se ejecutan en servidor; la UI recibe metadata mínima.
 
@@ -130,12 +137,13 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 
 ## Current implementation status
 
-**Phase 1 completed. Phase 2 completed.** Se puede crear un borrador, crear una organización desde ese flujo, guardar General, configurar las cinco perspectivas y gestionar segmentos. El diagnóstico no puede abrirse. Los resultados de pruebas y límites están en [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md); Phase 1 conserva su [validación](docs/PHASE1_VALIDATION.md). GAP-001–GAP-013 siguen abiertos.
+**Phase 1, Phase 2 y Phase 3A implementadas.** Se puede configurar un borrador, gestionar segmentos y probar el flujo técnico de invitación → OTP → respuestas → reanudación → envío. **PRUEBA TÉCNICA — NO ES UN INSTRUMENTO IEO® OFICIAL.** No hay COL oficial, cómputo IEO®, cierre ni resultados. Evidencia y límites: [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-001–GAP-013 siguen abiertos.
 
 ## Documentación
 
 - [Decisiones y alcance de Phase 1](docs/PHASE1_DECISIONS.md)
 - [Decisiones de Phase 2](docs/PHASE2_DECISIONS.md) y [validación](docs/PHASE2_VALIDATION.md)
+- [Decisiones de Phase 3A](docs/PHASE3A_DECISIONS.md) y [validación](docs/PHASE3A_VALIDATION.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)
@@ -143,4 +151,4 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 - [Pantallas](docs/SCREEN_MAP.md), [rutas](docs/ROUTES.md), [fases](docs/IMPLEMENTATION_PLAN.md)
 - [Dudas metodológicas](docs/METHODOLOGY_GAPS.md)
 
-Los 12 originales permanecen directamente en docs; no existe docs/requirements. Sus hashes están en ARCHITECTURE.md. No se modifican reglas IEO® en Phase 1 ni Phase 2.
+Los 12 originales permanecen directamente en docs; no existe docs/requirements. Sus hashes están en ARCHITECTURE.md. No se modifican reglas IEO® en Phase 1, Phase 2 ni Phase 3A.

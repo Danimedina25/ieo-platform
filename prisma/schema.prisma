@@ -48,7 +48,33 @@ enum ReportabilityStatus {
   REPORTABLE
   NOT_REPORTABLE
 }
+enum InvitationStatus {
+  CREATED
+  SENT
+  VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+enum ResponseSessionStatus {
+  STARTED
+  SUBMITTED
+  INVALIDATED
+}
+enum SurveyItemType {
+  LIKERT
+  TEXT
+}
+enum SurveyAnswerState {
+  MISSING
+  VALUE
+  NA
+}
 enum AuditAction {
+  TEST_INVITATION_CREATED
+  TEST_INVITATION_REISSUED
+  TEST_INVITATION_CANCELLED
+  PARTICIPANT_TEST_SUBMITTED
   ORGANIZATION_CREATED
   ASSESSMENT_CREATED
   ASSESSMENT_UPDATED
@@ -76,6 +102,7 @@ model User {
   auditLogs      AuditLog[]
   consultantAssessments Assessment[] @relation("AssessmentConsultant")
   coordinatorAssessments Assessment[] @relation("AssessmentCoordinator")
+  createdInvitations Invitation[]
 }
 
 model AdminSession {
@@ -136,6 +163,8 @@ model Assessment {
   coordinator    User?            @relation("AssessmentCoordinator", fields: [coordinatorUserId], references: [id], onDelete: Restrict)
   perspectives   AssessmentPerspective[]
   segments       Segment[]
+  invitations    Invitation[]
+  responseSessions ResponseSession[]
   @@index([consultantUserId])
   @@index([coordinatorUserId])
   @@unique([organizationId, id])
@@ -171,7 +200,10 @@ model AssessmentPerspective {
   createdAt          DateTime                  @default(now()) @db.DateTime(3)
   updatedAt          DateTime                  @updatedAt @db.DateTime(3)
   assessment         Assessment                @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  invitations        Invitation[]
+  responseSessions   ResponseSession[]
   @@unique([assessmentId, perspectiveCode])
+  @@unique([assessmentId, id])
 }
 
 model Segment {
@@ -187,4 +219,106 @@ model Segment {
   assessment          Assessment          @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   @@unique([assessmentId, dimension, label])
   @@index([assessmentId, active])
+}
+
+model Invitation {
+  id                      String           @id @default(uuid()) @db.Char(36)
+  assessmentId            String           @db.Char(36)
+  assessmentPerspectiveId String           @db.Char(36)
+  emailCiphertext         String           @db.Text
+  emailLookupHmac         String           @db.Char(64)
+  tokenHash               String           @unique @db.Char(64)
+  tokenGeneration         Int              @default(1)
+  status                  InvitationStatus @default(CREATED)
+  expiresAt               DateTime         @db.DateTime(3)
+  sentAt                  DateTime?        @db.DateTime(3)
+  verifiedAt              DateTime?        @db.DateTime(3)
+  completedAt             DateTime?        @db.DateTime(3)
+  cancelledAt             DateTime?        @db.DateTime(3)
+  isTest                  Boolean          @default(true)
+  createdById             String           @db.Char(36)
+  createdAt               DateTime         @default(now()) @db.DateTime(3)
+  updatedAt               DateTime         @updatedAt @db.DateTime(3)
+  assessment              Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  perspective             AssessmentPerspective @relation(fields: [assessmentId, assessmentPerspectiveId], references: [assessmentId, id], onDelete: Restrict)
+  createdBy               User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  challenges              AccessChallenge[]
+  binding                 ParticipantAccessBinding?
+  @@unique([assessmentPerspectiveId, emailLookupHmac])
+  @@index([assessmentId, status])
+  @@index([createdById])
+}
+
+model AccessChallenge {
+  id              String     @id @default(uuid()) @db.Char(36)
+  invitationId    String     @db.Char(36)
+  tokenGeneration Int
+  contextHash     String     @unique @db.Char(64)
+  otpHmac         String     @db.Char(64)
+  expiresAt       DateTime   @db.DateTime(3)
+  attempts        Int        @default(0)
+  consumedAt      DateTime?  @db.DateTime(3)
+  invalidatedAt   DateTime?  @db.DateTime(3)
+  createdAt       DateTime   @default(now()) @db.DateTime(3)
+  invitation      Invitation @relation(fields: [invitationId], references: [id], onDelete: Restrict)
+  @@index([invitationId, createdAt])
+}
+
+model ParticipantAccessBinding {
+  id                String      @id @default(uuid()) @db.Char(36)
+  invitationId      String      @unique @db.Char(36)
+  responseSessionId String      @unique @db.Char(36)
+  createdAt         DateTime    @default(now()) @db.DateTime(3)
+  revokedAt         DateTime?   @db.DateTime(3)
+  invitation        Invitation  @relation(fields: [invitationId], references: [id], onDelete: Restrict)
+  responseSession   ResponseSession @relation(fields: [responseSessionId], references: [id], onDelete: Restrict)
+  authSessions      ParticipantAuthSession[]
+}
+
+model ParticipantAuthSession {
+  id              String      @id @default(uuid()) @db.Char(36)
+  accessBindingId String      @db.Char(36)
+  tokenHash       String      @unique @db.Char(64)
+  expiresAt       DateTime    @db.DateTime(3)
+  lastSeenAt      DateTime    @db.DateTime(3)
+  revokedAt       DateTime?   @db.DateTime(3)
+  createdAt       DateTime    @default(now()) @db.DateTime(3)
+  binding         ParticipantAccessBinding @relation(fields: [accessBindingId], references: [id], onDelete: Restrict)
+  @@index([accessBindingId, expiresAt])
+}
+
+model ResponseSession {
+  id                      String      @id @default(uuid()) @db.Char(36)
+  assessmentId            String      @db.Char(36)
+  assessmentPerspectiveId String      @db.Char(36)
+  surveyCode              String      @db.VarChar(64)
+  surveyVersion           Int
+  status                  ResponseSessionStatus @default(STARTED)
+  startedAt               DateTime    @default(now()) @db.DateTime(3)
+  submittedAt             DateTime?   @db.DateTime(3)
+  introAcceptedAt         DateTime?   @db.DateTime(3)
+  introVersion            String?     @db.VarChar(40)
+  revision                Int         @default(0)
+  isTest                  Boolean     @default(true)
+  createdAt               DateTime    @default(now()) @db.DateTime(3)
+  updatedAt               DateTime    @updatedAt @db.DateTime(3)
+  assessment              Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  perspective             AssessmentPerspective @relation(fields: [assessmentId, assessmentPerspectiveId], references: [assessmentId, id], onDelete: Restrict)
+  binding                 ParticipantAccessBinding?
+  responses               SurveyResponse[]
+  @@index([assessmentId, assessmentPerspectiveId, status])
+}
+
+model SurveyResponse {
+  id                String            @id @default(uuid()) @db.Char(36)
+  responseSessionId String            @db.Char(36)
+  itemKey           String            @db.VarChar(64)
+  itemType          SurveyItemType
+  answerState       SurveyAnswerState
+  numericValue      Int?
+  textCiphertext    String?           @db.Text
+  createdAt         DateTime          @default(now()) @db.DateTime(3)
+  updatedAt         DateTime          @updatedAt @db.DateTime(3)
+  responseSession   ResponseSession   @relation(fields: [responseSessionId], references: [id], onDelete: Restrict)
+  @@unique([responseSessionId, itemKey])
 }

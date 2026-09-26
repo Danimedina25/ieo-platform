@@ -1,0 +1,2 @@
+export const dynamic = "force-dynamic";
+export default function ParticipantLayout({ children }: { children: React.ReactNode }) { return <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-950"><div className="mx-auto max-w-xl"><p className="mb-6 border-b border-slate-300 pb-4 text-sm font-bold tracking-wide text-blue-950">SISTEMA DIGITAL IEO® · PRUEBA TÉCNICA</p>{children}</div></main>; }

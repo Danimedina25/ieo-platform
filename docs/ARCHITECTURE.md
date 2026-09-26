@@ -1,8 +1,8 @@
 # Arquitectura propuesta — Sistema Digital IEO®
 
-> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementó login y seis entidades; Phase 2 agregó el workspace DRAFT y dos entidades (AssessmentPerspective, Segment). OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento/worker, revisiones detalladas y correo: **Deferred / Not implemented in Phase 1**. El alcance vigente está en [PHASE2_DECISIONS.md](PHASE2_DECISIONS.md); las rutas y entidades futuras de este documento no implican implementación actual.
+> **Alcance incremental:** este documento conserva la arquitectura objetivo de Phase 0. Phase 1 implementó login y seis entidades; Phase 2 agregó el workspace DRAFT y dos entidades; Phase 3A añadió invitaciones, OTP y encuesta exclusivamente sintética. El alcance vigente está en [PHASE3A_DECISIONS.md](PHASE3A_DECISIONS.md). OIDC, SensitiveAccessGrant, DisclosureReview, procesamiento, catálogo oficial y exportaciones siguen diferidos; las rutas y entidades futuras de este documento no implican implementación actual.
 
-Estado: diseño objetivo de Phase 0, revisión documental final 2026-09-24. Phase 1 y Phase 2 ya cuentan con implementación incremental; ver PHASE1_DECISIONS.md y PHASE2_DECISIONS.md. La documentación metodológica es la fuente de verdad; las decisiones técnicas aquí propuestas no son reglas nuevas del IEO®.
+Estado: diseño objetivo de Phase 0, revisión documental final 2026-09-24. Phase 1, Phase 2 y Phase 3A cuentan con implementación incremental; ver PHASE1_DECISIONS.md, PHASE2_DECISIONS.md y PHASE3A_DECISIONS.md. La documentación metodológica es la fuente de verdad; las decisiones técnicas aquí propuestas no son reglas nuevas del IEO®.
 
 ## Fuentes estudiadas y precedencia
 

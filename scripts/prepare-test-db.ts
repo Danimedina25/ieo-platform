@@ -12,6 +12,12 @@ async function main() {
     const actual = await db().$queryRaw<Array<{ name: string }>>`SELECT DATABASE() AS name`;
     if (actual[0]?.name !== expected) throw new Error("La conexión no apunta a la base de pruebas esperada.");
     await db().$transaction(async tx => {
+      await tx.participantAuthSession.deleteMany();
+      await tx.accessChallenge.deleteMany();
+      await tx.participantAccessBinding.deleteMany();
+      await tx.surveyResponse.deleteMany();
+      await tx.responseSession.deleteMany();
+      await tx.invitation.deleteMany();
       await tx.auditLog.deleteMany();
       await tx.adminSession.deleteMany();
       await tx.segment.deleteMany();

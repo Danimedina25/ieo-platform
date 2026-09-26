@@ -86,6 +86,6 @@ it("tablas de aplicación usan InnoDB y utf8mb4 en MySQL 8", async () => {
   const version = await db().$queryRaw<Array<{ version: string }>>`SELECT VERSION() AS version`;
   expect(version[0].version).toMatch(/^8\./);
   const tables = await db().$queryRaw<Array<{ ENGINE: string; TABLE_COLLATION: string }>>`SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME <> '_prisma_migrations'`;
-  expect(tables).toHaveLength(8);
+  expect(tables).toHaveLength(14);
   for (const table of tables) { expect(table.ENGINE).toBe("InnoDB"); expect(table.TABLE_COLLATION).toMatch(/^utf8mb4_/); }
 });
