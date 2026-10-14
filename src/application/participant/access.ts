@@ -83,7 +83,8 @@ export async function verifyOtp(context: string | undefined, otp: string) {
     let binding = await tx.participantAccessBinding.findUnique({ where: { invitationId: invitation!.id }, include: { responseSession: true } });
     if (!binding) {
       const perspective = await tx.assessmentPerspective.findUniqueOrThrow({ where: { id: invitation!.assessmentPerspectiveId }, select: { perspectiveCode: true } });
-      const survey = await instrumentVersionForPerspective(tx, perspective.perspectiveCode) ?? { instrumentVersionId: null, surveyCode: "TECH-SURVEY-01", surveyVersion: 1 };
+      const survey = await instrumentVersionForPerspective(tx, invitation!.assessmentId, perspective.perspectiveCode);
+      if (!survey) fail(503, "Cuestionario no disponible para este diagnóstico.");
       const response = await tx.responseSession.create({ data: { assessmentId: invitation!.assessmentId, assessmentPerspectiveId: invitation!.assessmentPerspectiveId, ...survey, isTest: true } });
       binding = await tx.participantAccessBinding.create({ data: { invitationId: invitation!.id, responseSessionId: response.id }, include: { responseSession: true } });
     }

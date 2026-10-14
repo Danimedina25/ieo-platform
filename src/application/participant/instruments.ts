@@ -1,39 +1,33 @@
 import "server-only";
-import type { Prisma } from "@/generated/prisma/client";
+import type { PerspectiveCode, Prisma } from "@/generated/prisma/client";
 import { db } from "@/infrastructure/persistence/db";
 import { definitionFromCatalog } from "@/domain/survey/from-catalog";
-import { technicalSurvey } from "@/domain/survey/fixtures/technical-survey-v1";
 import type { SurveyDefinition } from "@/domain/survey/definition";
 import type { InstrumentCatalog } from "@/domain/survey/catalog";
 
-// Phase 3B: only COL is served from the official catalog; other perspectives keep the technical survey until Phase 4.
-const INSTRUMENT_BY_PERSPECTIVE: Partial<Record<string, { instrumentCode: string; version: string }>> = { COL: { instrumentCode: "IEO-COL-01", version: "1.0" } };
-export const TECHNICAL_INTRO_VERSION = "TECH-1";
 
 export type SessionSurvey = Readonly<{
   definition: SurveyDefinition;
-  /** itemKey → QuestionVersion id; null for the technical survey. */
-  questionIds: ReadonlyMap<string, string> | null;
-  instrumentVersionId: string | null;
+  /** itemKey → QuestionVersion id. */
+  questionIds: ReadonlyMap<string, string>;
+  instrumentVersionId: string;
   introVersion: string;
-  content: null | Readonly<{ title: string; intro: InstrumentCatalog["intro"]; scale: SurveyDefinition["scale"]; thanks: string; certified: boolean }>;
+  content: Readonly<{ title: string; intro: InstrumentCatalog["intro"]; scale: SurveyDefinition["scale"]; thanks: string; certified: boolean }>;
 }>;
-const technical: SessionSurvey = { definition: technicalSurvey, questionIds: null, instrumentVersionId: null, introVersion: TECHNICAL_INTRO_VERSION, content: null };
 // Published instrument versions are immutable, so a per-process cache by id is safe.
 const cache = new Map<string, SessionSurvey>();
 
 type Client = Prisma.TransactionClient | ReturnType<typeof db>;
-export async function instrumentVersionForPerspective(client: Client, perspectiveCode: string) {
-  const reference = INSTRUMENT_BY_PERSPECTIVE[perspectiveCode];
-  if (!reference) return null;
-  const row = await client.instrumentVersion.findUnique({ where: { instrumentCode_version: reference }, select: { id: true, instrumentCode: true, version: true } });
-  if (!row) throw new Error(`Catálogo ${reference.instrumentCode} ${reference.version} no cargado.`);
+/** Instrument of a perspective inside the assessment's pinned methodology package; null if none is pinned. */
+export async function instrumentVersionForPerspective(client: Client, assessmentId: string, perspectiveCode: PerspectiveCode) {
+  const assessment = await client.assessment.findUniqueOrThrow({ where: { id: assessmentId }, select: { methodologyPackage: { select: { instruments: { where: { perspectiveCode }, select: { instrumentVersion: { select: { id: true, instrumentCode: true, version: true } } } } } } } });
+  const row = assessment.methodologyPackage?.instruments[0]?.instrumentVersion;
+  if (!row) return null;
   // ResponseSession.surveyCode/surveyVersion keep the Phase 3A columns: instrument code and major version.
   return { instrumentVersionId: row.id, surveyCode: row.instrumentCode, surveyVersion: Number.parseInt(row.version, 10) };
 }
 
-export async function sessionSurvey(client: Client, instrumentVersionId: string | null): Promise<SessionSurvey> {
-  if (!instrumentVersionId) return technical;
+export async function sessionSurvey(client: Client, instrumentVersionId: string): Promise<SessionSurvey> {
   const cached = cache.get(instrumentVersionId);
   if (cached) return cached;
   const version = await client.instrumentVersion.findUniqueOrThrow({ where: { id: instrumentVersionId }, include: {

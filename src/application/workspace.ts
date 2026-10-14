@@ -1,4 +1,5 @@
 import "server-only";
+import { CURRENT_PACKAGE } from "@/domain/survey/package";
 import { Prisma, type Assessment, type AssessmentPerspective, type Segment } from "@/generated/prisma/client";
 import { db } from "@/infrastructure/persistence/db";
 import { requireAuthenticatedUser, AccessDeniedError } from "./authorization";
@@ -39,7 +40,9 @@ export async function createAssessment(token: string | undefined, input: unknown
       organizationId = data.organization.id;
       await consultantMembership(tx, user.id, organizationId);
     }
-    const assessment = await tx.assessment.create({ data: { organizationId, name: data.name, period: data.period, objective: data.objective, consultantUserId: user.id } });
+    // Pins the current methodology package so later instrument versions never change this assessment.
+    const methodologyPackage = await tx.methodologyPackage.findUnique({ where: { code_version: { code: CURRENT_PACKAGE.code, version: CURRENT_PACKAGE.version } }, select: { id: true } });
+    const assessment = await tx.assessment.create({ data: { organizationId, name: data.name, period: data.period, objective: data.objective, consultantUserId: user.id, methodologyPackageId: methodologyPackage?.id ?? null } });
     await tx.assessmentPerspective.createMany({ data: perspectiveCodes.map(perspectiveCode => ({ assessmentId: assessment.id, perspectiveCode })) });
     await tx.auditLog.create({ data: { organizationId, assessmentId: assessment.id, actorUserId: user.id, action: "ASSESSMENT_CREATED", entityType: "Assessment", entityId: assessment.id } });
     return { id: assessment.id };

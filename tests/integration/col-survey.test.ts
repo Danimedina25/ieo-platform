@@ -16,7 +16,7 @@ const mailbox = join(tmpdir(), `ieo-col-mail-${process.pid}-${randomUUID()}.json
 const prior = { provider: process.env.EMAIL_PROVIDER, mode: process.env.E2E_MODE, path: process.env.E2E_MAILBOX_PATH };
 const tag = randomUUID().slice(0, 8);
 const invitationIds: string[] = [];
-let admin = "", bearer = "", revision = 0, responseSessionId = "";
+let admin = "", bearer = "", revision = 0, responseSessionId = "", espSessionId = "";
 function mail(kind: "link" | "otp") { return readFileSync(mailbox, "utf8").trim().split("\n").map(line => JSON.parse(line) as { kind: string; value: string }).filter(row => row.kind === kind).at(-1)!.value; }
 async function participant(perspectiveCode: "COL" | "ESP", name: string) {
   const row = await createInvitation(admin, demoIds.assessmentA, { email: `${name}-${tag}@example.test`, perspectiveCode, expiresAt: new Date(Date.now() + 86400_000).toISOString() });
@@ -67,13 +67,14 @@ it("P3B-INT-02 reloading is idempotent and a changed version is refused", async 
   const changed = { ...verifiedCatalog(colCatalog), title: "IEO Colaboradores editado" };
   await expect(loadInstrumentCatalog(db(), { ...changed, contentHash: catalogContentHash(changed) })).rejects.toThrow(/ya existe con otro contenido/);
 });
-it("P3B-INT-03 COL invitation binds the session to IEO-COL-01; ESP keeps the technical survey", async () => {
+it("P3B-INT-03 COL invitation binds the session to IEO-COL-01; ESP gets IEO-ESP-01", async () => {
   ({ bearer, responseSessionId } = await participant("COL", "col"));
   const session = await db().responseSession.findUniqueOrThrow({ where: { id: responseSessionId }, include: { instrumentVersion: true } });
   expect(session).toMatchObject({ surveyCode: "IEO-COL-01", surveyVersion: 1, isTest: true });
   expect(session.instrumentVersion?.contentHash).toBe(colCatalog.contentHash);
   const esp = await participant("ESP", "esp");
-  expect((await db().responseSession.findUniqueOrThrow({ where: { id: esp.responseSessionId } })).instrumentVersionId).toBeNull();
+  espSessionId = esp.responseSessionId;
+  expect((await db().responseSession.findUniqueOrThrow({ where: { id: esp.responseSessionId }, include: { instrumentVersion: true } })).instrumentVersion?.instrumentCode).toBe("IEO-ESP-01");
 });
 it("P3B-INT-04 intro records the instrument version and hash", async () => {
   await acceptIntro(bearer);
@@ -87,8 +88,8 @@ it("P3B-INT-05 participant receives 8 Elements and 81 items in order, without or
   expect(JSON.stringify(survey)).not.toMatch(/REVERSE|orientation/);
   revision = survey.revision;
 });
-it("P3B-INT-06 technical keys, out-of-scale values and N/A on open questions are rejected", async () => {
-  await expect(saveSurvey(bearer, { expectedRevision: revision, answers: [{ itemKey: "TECH_Q1", answerState: "VALUE", numericValue: 3 }] })).rejects.toMatchObject({ status: 400 });
+it("P3B-INT-06 keys of another instrument, out-of-scale values and N/A on open questions are rejected", async () => {
+  await expect(saveSurvey(bearer, { expectedRevision: revision, answers: [{ itemKey: "ESP_E01_R001", answerState: "VALUE", numericValue: 3 }] })).rejects.toMatchObject({ status: 400 });
   await expect(saveSurvey(bearer, { expectedRevision: revision, answers: [{ itemKey: "COL_E01_R001", answerState: "VALUE", numericValue: 6 }] })).rejects.toMatchObject({ status: 400 });
   await expect(saveSurvey(bearer, { expectedRevision: revision, answers: [{ itemKey: "COL_E01_O01", answerState: "NA" }] })).rejects.toMatchObject({ status: 400 });
 });
@@ -119,9 +120,8 @@ it("P3B-INT-09 an all-N/A Element does not block submission; open questions are 
   await expect(saveSurvey(bearer, { expectedRevision: revision, answers: [{ itemKey: "COL_E01_R001", answerState: "VALUE", numericValue: 2 }] })).rejects.toMatchObject({ status: 401 });
 });
 it("P3B-INT-10 MySQL rejects catalog links that do not match the session instrument", async () => {
-  const technical = await db().responseSession.findFirstOrThrow({ where: { assessmentId: demoIds.assessmentA, instrumentVersionId: null } });
   const question = await db().questionVersion.findFirstOrThrow({ where: { code: "COL_E01_R001" } });
-  await expect(db().surveyResponse.create({ data: { responseSessionId: technical.id, itemKey: "COL_E01_R001", itemType: "LIKERT", answerState: "VALUE", numericValue: 3, instrumentVersionId: question.instrumentVersionId, questionVersionId: question.id } })).rejects.toThrow();
+  await expect(db().surveyResponse.create({ data: { responseSessionId: espSessionId, itemKey: "COL_E01_R001", itemType: "LIKERT", answerState: "VALUE", numericValue: 3, instrumentVersionId: question.instrumentVersionId, questionVersionId: question.id } })).rejects.toThrow();
   await expect(db().surveyResponse.create({ data: { responseSessionId, itemKey: "COL_E01_R002", itemType: "LIKERT", answerState: "VALUE", numericValue: 3, instrumentVersionId: question.instrumentVersionId } })).rejects.toThrow();
   await expect(db().$executeRaw`UPDATE QuestionVersion SET orientation = NULL WHERE id = ${question.id}`).rejects.toThrow();
 });

@@ -8,7 +8,6 @@ export type SurveyItem = Readonly<{
   order: number;
   /** Official visible number of a quantitative item (1…n in the printed instrument). */
   number?: number;
-  required: boolean;
   allowNA: boolean;
   elementCode: ElementCode | null;
 }>;
@@ -25,8 +24,6 @@ export type SurveyDefinition = Readonly<{
   code: string;
   version: string;
   title: string;
-  /** REQUIRED_ITEMS: per-item required flags (technical survey). ELEMENT_COVERAGE: ≥ 60 % valid per Element (GAP-004). */
-  submissionRule: "REQUIRED_ITEMS" | "ELEMENT_COVERAGE";
   scale: readonly Readonly<{ value: "1" | "2" | "3" | "4" | "5" | "NA"; label: string }>[];
   sections: readonly SurveySection[];
 }>;

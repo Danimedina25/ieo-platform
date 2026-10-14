@@ -94,6 +94,7 @@ enum AuditAction {
   TEST_INVITATION_CANCELLED
   PARTICIPANT_TEST_SUBMITTED
   INSTRUMENT_VERSION_LOADED
+  METHODOLOGY_PACKAGE_LOADED
   ORGANIZATION_CREATED
   ASSESSMENT_CREATED
   ASSESSMENT_UPDATED
@@ -174,18 +175,21 @@ model Assessment {
   consultantUserId String?        @db.Char(36)
   coordinatorUserId String?       @db.Char(36)
   methodologyNotes String?        @db.Text
+  methodologyPackageId String?    @db.Char(36)
   createdAt      DateTime         @default(now()) @db.DateTime(3)
   updatedAt      DateTime         @updatedAt @db.DateTime(3)
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   auditLogs      AuditLog[]
   consultant     User?            @relation("AssessmentConsultant", fields: [consultantUserId], references: [id], onDelete: Restrict)
   coordinator    User?            @relation("AssessmentCoordinator", fields: [coordinatorUserId], references: [id], onDelete: Restrict)
+  methodologyPackage MethodologyPackage? @relation(fields: [methodologyPackageId], references: [id], onDelete: Restrict)
   perspectives   AssessmentPerspective[]
   segments       Segment[]
   invitations    Invitation[]
   responseSessions ResponseSession[]
   @@index([consultantUserId])
   @@index([coordinatorUserId])
+  @@index([methodologyPackageId])
   @@unique([organizationId, id])
   @@index([organizationId, createdAt])
 }
@@ -370,7 +374,30 @@ model InstrumentVersion {
   questions        QuestionVersion[]
   scaleOptions     InstrumentScaleOption[]
   responseSessions ResponseSession[]
+  packages         PackageInstrument[]
   @@unique([instrumentCode, version])
+  @@unique([id, perspectiveCode])
+}
+
+model MethodologyPackage {
+  id          String              @id @default(uuid()) @db.Char(36)
+  code        String              @db.VarChar(32)
+  version     String              @db.VarChar(16)
+  title       String              @db.VarChar(160)
+  createdAt   DateTime            @default(now()) @db.DateTime(3)
+  instruments PackageInstrument[]
+  assessments Assessment[]
+  @@unique([code, version])
+}
+
+model PackageInstrument {
+  packageId           String             @db.Char(36)
+  perspectiveCode     PerspectiveCode
+  instrumentVersionId String             @db.Char(36)
+  package             MethodologyPackage @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  instrumentVersion   InstrumentVersion  @relation(fields: [instrumentVersionId, perspectiveCode], references: [id, perspectiveCode], onDelete: Restrict, onUpdate: Restrict)
+  @@id([packageId, perspectiveCode])
+  @@index([instrumentVersionId, perspectiveCode])
 }
 
 model InstrumentScaleOption {

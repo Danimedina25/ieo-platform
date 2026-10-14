@@ -1,6 +1,6 @@
 # Phase 4 — decisiones previas al código
 
-Estado: **aprobada el 2026-10-14**. Phase 3B está terminada ([PHASE3B_VALIDATION.md](PHASE3B_VALIDATION.md)). Phase 4 extiende el mismo catálogo, renderer y regla de envío a los cuatro instrumentos restantes. Sigue siendo captura con datos ficticios (`isTest=true`) mientras GAP-001 y GAP-012 sigan abiertos.
+Estado: **aprobada el 2026-10-14 e implementada**; evidencia en [PHASE4_VALIDATION.md](PHASE4_VALIDATION.md). Phase 3B está terminada ([PHASE3B_VALIDATION.md](PHASE3B_VALIDATION.md)). Phase 4 extiende el mismo catálogo, renderer y regla de envío a los cuatro instrumentos restantes. Sigue siendo captura con datos ficticios (`isTest=true`) mientras GAP-001 y GAP-012 sigan abiertos.
 
 ## Alcance
 
@@ -48,3 +48,12 @@ Cierre del diagnóstico, motor matemático, recodificación de inversos, resulta
 - Integración MySQL: paquete con exactamente cinco instrumentos, diagnóstico con paquete fijado, sesión ligada al instrumento de su perspectiva, N/A rechazado en DIR, envío por perspectiva.
 - Playwright: recorrido completo de los cinco instrumentos (móvil y escritorio).
 - Las suites de fases anteriores siguen pasando, adaptadas a que ya no existe la encuesta técnica; los 12 originales conservan su SHA-256.
+
+## Cierre de implementación
+
+- Un solo generador (`build-instrument.ts`) produce los cinco catálogos con `npm run catalog:build`; ubica la tabla de reactivos por su encabezado y acepta una o dos líneas de guía por Elemento. El JSON de COL se regeneró byte a byte idéntico, con el mismo `contentHash`.
+- **Cambio respecto a la propuesta:** los diagnósticos existentes no se asignan al paquete en la migración SQL, porque los identificadores del paquete se crean al cargar los catálogos. Lo hace `loadOfficialCatalogs` (seed, `test:db:prepare` y `npm run db:catalog`) para los diagnósticos DRAFT sin paquete. Los nuevos diagnósticos lo fijan al crearse.
+- `PackageInstrument` referencia `(instrumentVersionId, perspectiveCode)`, así MySQL impide asignar a una perspectiva el instrumento de otra.
+- Un diagnóstico sin paquete no puede iniciar cuestionarios (503). Una sesión antigua de la encuesta técnica, sin instrumento, responde 410.
+- Se eliminaron la encuesta técnica, el campo `required` y la regla de preguntas obligatorias: ninguna pregunta es obligatoria (GAP-004).
+- Las pruebas de Phase 3A recorren ahora el instrumento ESP real.

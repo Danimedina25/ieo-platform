@@ -34,13 +34,9 @@ export function elementCoverage(definition: SurveyDefinition, answers: readonly 
 /** Minimum number of valid answers an Element needs given its current N/A count. */
 export function validNeeded(coverage: Pick<ElementCoverage, "applicable">) { return Math.ceil(coverage.applicable * THRESHOLD.numerator / THRESHOLD.denominator); }
 
-export type SubmissionCheck = Readonly<{ allowed: boolean; missingRequired: string[]; elementsBelow: ElementCode[] }>;
+export type SubmissionCheck = Readonly<{ allowed: boolean; elementsBelow: ElementCode[] }>;
+/** No item is individually required (GAP-004): only the per-Element threshold gates submission. */
 export function submissionCheck(definition: SurveyDefinition, answers: readonly Pick<SurveyAnswer, "itemKey" | "answerState">[]): SubmissionCheck {
-  if (definition.submissionRule === "REQUIRED_ITEMS") {
-    const states = new Map(answers.map(answer => [answer.itemKey, answer.answerState]));
-    const missingRequired = surveyItems(definition).filter(item => item.required && (states.get(item.key) ?? "MISSING") === "MISSING").map(item => item.key);
-    return { allowed: missingRequired.length === 0, missingRequired, elementsBelow: [] };
-  }
   const elementsBelow = elementCoverage(definition, answers).filter(row => row.status === "BELOW").map(row => row.elementCode);
-  return { allowed: elementsBelow.length === 0, missingRequired: [], elementsBelow };
+  return { allowed: elementsBelow.length === 0, elementsBelow };
 }

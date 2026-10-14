@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { selectTestDatabase } from "../tests/test-environment";
 import { seedDemo, seedEnvironment } from "../prisma/seed-data";
-import { colCatalog, loadInstrumentCatalog } from "../src/infrastructure/catalog/load";
+import { loadOfficialCatalogs } from "../src/infrastructure/catalog/load";
 async function main() {
   selectTestDatabase();
   seedEnvironment();
@@ -28,7 +28,7 @@ async function main() {
       await tx.organization.deleteMany();
       await tx.user.deleteMany();
     });
-    await seedDemo(db()); await loadInstrumentCatalog(db(), colCatalog); console.log("Base exclusiva de pruebas reiniciada, migrada y seed sintético aplicado.");
+    await seedDemo(db()); await loadOfficialCatalogs(db()); console.log("Base exclusiva de pruebas reiniciada, migrada y seed sintético aplicado.");
   }
   finally { await db().$disconnect(); }
 }

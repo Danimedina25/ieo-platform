@@ -7,11 +7,11 @@ import { colCatalog } from "@/infrastructure/catalog/load";
 // Synthetic two-Element definition; expectations follow GAP-004/006 resolutions and S12 T06/T06N.
 function definition(sizes: number[]): SurveyDefinition {
   const codes = ["E01", "E02"] as const;
-  return { code: "T", version: "1", title: "T", submissionRule: "ELEMENT_COVERAGE", scale: [], sections: sizes.map((size, index) => ({
+  return { code: "T", version: "1", title: "T", scale: [], sections: sizes.map((size, index) => ({
     id: `S${index}`, label: `Elemento ${index + 1}`, title: "", elementCode: codes[index], introduction: null, instructions: null,
     items: [
-      ...Array.from({ length: size }, (_, item) => ({ key: `${codes[index]}_${item}`, type: "LIKERT" as const, text: "", order: item, required: false, allowNA: true, elementCode: codes[index] })),
-      { key: `${codes[index]}_OPEN`, type: "TEXT" as const, text: "", order: 99, required: false, allowNA: false, elementCode: codes[index] },
+      ...Array.from({ length: size }, (_, item) => ({ key: `${codes[index]}_${item}`, type: "LIKERT" as const, text: "", order: item, allowNA: true, elementCode: codes[index] })),
+      { key: `${codes[index]}_OPEN`, type: "TEXT" as const, text: "", order: 99, allowNA: false, elementCode: codes[index] },
     ],
   })) };
 }
@@ -43,13 +43,18 @@ describe("element coverage (≥ 60 % valid, N/A out of the denominator)", () => 
     expect(one([10], [])).toMatchObject({ valid: 0, missing: 10, status: "BELOW" });
   });
   it("blocks submission when a single Element is below and names only that Element", () => {
-    expect(submissionCheck(definition([9, 9]), [...answers("E01", 9, 0), ...answers("E02", 5, 0)])).toEqual({ allowed: false, missingRequired: [], elementsBelow: ["E02"] });
+    expect(submissionCheck(definition([9, 9]), [...answers("E01", 9, 0), ...answers("E02", 5, 0)])).toEqual({ allowed: false, elementsBelow: ["E02"] });
   });
   it("computes the minimum valid answers needed", () => {
     expect(validNeeded({ applicable: 10 })).toBe(6);
     expect(validNeeded({ applicable: 9 })).toBe(6);
     expect(validNeeded({ applicable: 7 })).toBe(5);
     expect(validNeeded({ applicable: 5 })).toBe(3);
+  });
+  it("rounds the CLI minimum up: 3 of 4, 3 of 5, 4 of 6, 5 of 7", () => {
+    expect([4, 5, 6, 7].map(applicable => validNeeded({ applicable }))).toEqual([3, 3, 4, 5]);
+    expect(one([4], answers("E01", 2, 0)).status).toBe("BELOW");
+    expect(one([4], answers("E01", 3, 0)).status).toBe("MEETS");
   });
   it("applies to the real COL definition: empty is blocked, the minimum per Element is enough", () => {
     const col = definitionFromCatalog(colCatalog);

@@ -7,7 +7,6 @@ export function definitionFromCatalog(catalog: Pick<InstrumentCatalog, "instrume
     code: catalog.instrumentCode,
     version: catalog.version,
     title: catalog.title,
-    submissionRule: "ELEMENT_COVERAGE",
     scale: catalog.scale.map(option => ({ value: option.valueCode, label: option.label })),
     sections: [...catalog.sections].sort((a, b) => a.displayOrder - b.displayOrder).map(section => ({
       id: `S${section.displayOrder}`,
@@ -22,7 +21,6 @@ export function definitionFromCatalog(catalog: Pick<InstrumentCatalog, "instrume
         text: question.text,
         order: question.displayOrder,
         ...(question.kind === "QUANT" ? { number: question.officialOrder } : {}),
-        required: false,
         allowNA: question.allowNA,
         elementCode: question.elementCode,
       })),
