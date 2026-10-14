@@ -6,7 +6,7 @@ Fecha: 2026-09-25. Alcance exclusivo: vertical sintética de participante `TECH-
 
 | Comprobación | Evidencia |
 |---|---|
-| Prisma generate / migrate deploy / seed | Cliente generado; migración `20260925150000_phase3a_participant_technical_survey` aplicada en MySQL 8.4.10 dev y test; seed sintético idempotente |
+| Prisma generate / migrate deploy / seed | Cliente generado; migración `20260925200000_phase3a_participant_technical_survey` aplicada en MySQL 8.4.10 dev y test; seed sintético idempotente |
 | Lint / typecheck / build | PASS con Webpack y TypeScript estricto |
 | Unit | 29 PASS: 16 previas, 13 nuevas de criptografía, fixture, validación y duración de sesiones |
 | Integration MySQL | 49 PASS: 21 previas, 28 nuevas. Ejecutadas tras `test:db:prepare` en `ieo_test` |
