@@ -16,6 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
+    "db:catalog": "tsx scripts/load-catalog.ts",
+    "catalog:build": "tsx scripts/build-col-catalog.ts",
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",

@@ -1,6 +1,6 @@
 # Phase 3B — decisiones previas al código
 
-Estado: **propuesta, pendiente de aprobación**. Phase 3A está terminada y GAP-003/004/005/006/014 tienen resolución registrada en [METHODOLOGY_GAPS.md](METHODOLOGY_GAPS.md). Phase 3B sustituye la encuesta sintética por el instrumento **IEO-COL-01 v1.0** en la perspectiva COL, y sigue siendo una prueba con datos ficticios mientras GAP-012 (aviso y retención) siga abierto.
+Estado: **aprobada el 2026-10-14 e implementada**; evidencia en [PHASE3B_VALIDATION.md](PHASE3B_VALIDATION.md). Phase 3A está terminada y GAP-003/004/005/006/014 tienen resolución registrada en [METHODOLOGY_GAPS.md](METHODOLOGY_GAPS.md). Phase 3B sustituye la encuesta sintética por el instrumento **IEO-COL-01 v1.0** en la perspectiva COL, y sigue siendo una prueba con datos ficticios mientras GAP-012 (aviso y retención) siga abierto.
 
 ## Alcance
 
@@ -59,3 +59,13 @@ La comparación entera evita errores de punto flotante en la frontera exacta del
 - Integración MySQL: FK impide mezclar instrumentos, envío rechazado/aceptado según cobertura, inversos guardados crudos, orientación ausente del DTO, sesiones `isTest=false` rechazadas.
 - Playwright: recorrido COL completo en móvil 390×844 y escritorio, envío bloqueado y desbloqueado, reanudación, Elemento todo N/A enviado.
 - Las suites de Phase 1–3A siguen pasando; los 12 originales conservan su SHA-256.
+
+## Cierre de implementación
+
+- El catálogo se genera con `npm run catalog:build` (`scripts/build-col-catalog.ts`) y se carga con `npm run db:catalog`, también desde el seed y `test:db:prepare`. El generador falla ante cualquier diferencia entre Excel y Word que no sea la corrección aprobada de COL_E04_R028, ante metadatos inesperados o ante conteos distintos. El cargador recalcula el `contentHash` y rechaza una versión existente con contenido distinto.
+- Las dos FKs compuestas de `SurveyResponse` usan `ON UPDATE RESTRICT`: MySQL no admite un CHECK sobre columnas con acción referencial en cascada, y los identificadores nunca cambian.
+- El navegador guarda sólo las respuestas modificadas, y el PATCH de encuesta admite hasta 64 KB para que una abierta de 4,000 caracteres multibyte no se rechace. El resto de mutaciones de participante mantiene 16 KB.
+- La regla de cobertura es la misma función pura en navegador y servidor; el servidor es la autoridad. La pantalla de revisión desactiva el envío y nombra los Elementos por debajo del umbral.
+- `ResponseSession.surveyCode/surveyVersion` conservan sus columnas de Phase 3A (`IEO-COL-01`, versión mayor 1); la versión exacta queda en `instrumentVersionId`, e `introVersion` registra `IEO-COL-01@1.0:` más 16 caracteres del hash.
+- Las pruebas de Phase 3A usan ahora la perspectiva ESP, que sigue sirviendo `TECH-SURVEY-01`.
+- Durante la validación se corrigió el orden de migraciones: la de Phase 3A tenía fecha anterior a la de Phase 2 y fallaba en una base nueva; se renombró a `20260925200000_phase3a_participant_technical_survey`. También se marcó `scripts/mysql-init.sh` como ejecutable.

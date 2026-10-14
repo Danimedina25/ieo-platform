@@ -1,2 +1,2 @@
-import { SurveyForm } from "@/components/technical-survey";
+import { SurveyForm } from "@/components/survey-form";
 export default function SurveyPage() { return <SurveyForm />; }

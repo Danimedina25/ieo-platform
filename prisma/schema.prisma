@@ -70,11 +70,30 @@ enum SurveyAnswerState {
   VALUE
   NA
 }
+enum ElementCode {
+  E01
+  E02
+  E03
+  E04
+  E05
+  E06
+  E07
+  E08
+}
+enum QuestionKind {
+  QUANT
+  OPEN
+}
+enum QuestionOrientation {
+  DIRECT
+  REVERSE
+}
 enum AuditAction {
   TEST_INVITATION_CREATED
   TEST_INVITATION_REISSUED
   TEST_INVITATION_CANCELLED
   PARTICIPANT_TEST_SUBMITTED
+  INSTRUMENT_VERSION_LOADED
   ORGANIZATION_CREATED
   ASSESSMENT_CREATED
   ASSESSMENT_UPDATED
@@ -299,14 +318,19 @@ model ResponseSession {
   introAcceptedAt         DateTime?   @db.DateTime(3)
   introVersion            String?     @db.VarChar(40)
   revision                Int         @default(0)
+  instrumentVersionId     String?     @db.Char(36)
   isTest                  Boolean     @default(true)
   createdAt               DateTime    @default(now()) @db.DateTime(3)
   updatedAt               DateTime    @updatedAt @db.DateTime(3)
   assessment              Assessment @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
   perspective             AssessmentPerspective @relation(fields: [assessmentId, assessmentPerspectiveId], references: [assessmentId, id], onDelete: Restrict)
+  instrumentVersion       InstrumentVersion? @relation(fields: [instrumentVersionId], references: [id], onDelete: Restrict)
   binding                 ParticipantAccessBinding?
   responses               SurveyResponse[]
+  instrumentResponses     SurveyResponse[] @relation("SurveyResponseSessionInstrument")
+  @@unique([id, instrumentVersionId])
   @@index([assessmentId, assessmentPerspectiveId, status])
+  @@index([instrumentVersionId])
 }
 
 model SurveyResponse {
@@ -317,8 +341,83 @@ model SurveyResponse {
   answerState       SurveyAnswerState
   numericValue      Int?
   textCiphertext    String?           @db.Text
+  instrumentVersionId String?         @db.Char(36)
+  questionVersionId String?           @db.Char(36)
   createdAt         DateTime          @default(now()) @db.DateTime(3)
   updatedAt         DateTime          @updatedAt @db.DateTime(3)
   responseSession   ResponseSession   @relation(fields: [responseSessionId], references: [id], onDelete: Restrict)
+  sessionInstrument ResponseSession?  @relation("SurveyResponseSessionInstrument", fields: [responseSessionId, instrumentVersionId], references: [id, instrumentVersionId], onDelete: Restrict, onUpdate: Restrict, map: "SurveyResponse_session_instrument_fkey")
+  questionVersion   QuestionVersion?  @relation(fields: [instrumentVersionId, questionVersionId], references: [instrumentVersionId, id], onDelete: Restrict, onUpdate: Restrict)
   @@unique([responseSessionId, itemKey])
+  @@unique([responseSessionId, questionVersionId])
+  @@index([instrumentVersionId, questionVersionId])
+}
+
+model InstrumentVersion {
+  id               String          @id @default(uuid()) @db.Char(36)
+  instrumentCode   String          @db.VarChar(32)
+  version          String          @db.VarChar(16)
+  perspectiveCode  PerspectiveCode
+  title            String          @db.VarChar(160)
+  certified        Boolean         @default(false)
+  contentHash      String          @unique @db.Char(64)
+  sourcesJson      Json
+  correctionsJson  Json
+  introJson        Json
+  thanksText       String          @db.Text
+  createdAt        DateTime        @default(now()) @db.DateTime(3)
+  sections         InstrumentSection[]
+  questions        QuestionVersion[]
+  scaleOptions     InstrumentScaleOption[]
+  responseSessions ResponseSession[]
+  @@unique([instrumentCode, version])
+}
+
+model InstrumentScaleOption {
+  instrumentVersionId String            @db.Char(36)
+  valueCode           String            @db.VarChar(4)
+  label               String            @db.VarChar(120)
+  displayOrder        Int
+  instrumentVersion   InstrumentVersion @relation(fields: [instrumentVersionId], references: [id], onDelete: Restrict)
+  @@id([instrumentVersionId, valueCode])
+  @@unique([instrumentVersionId, displayOrder])
+}
+
+model InstrumentSection {
+  id                  String            @id @default(uuid()) @db.Char(36)
+  instrumentVersionId String            @db.Char(36)
+  elementCode         ElementCode?
+  label               String            @db.VarChar(40)
+  title               String            @db.VarChar(160)
+  introduction        String?           @db.Text
+  instructions        String?           @db.Text
+  displayOrder        Int
+  instrumentVersion   InstrumentVersion @relation(fields: [instrumentVersionId], references: [id], onDelete: Restrict)
+  questions           QuestionVersion[]
+  @@unique([instrumentVersionId, displayOrder])
+  @@unique([instrumentVersionId, id])
+}
+
+model QuestionVersion {
+  id                  String               @id @default(uuid()) @db.Char(36)
+  instrumentVersionId String               @db.Char(36)
+  sectionId           String               @db.Char(36)
+  code                String               @db.VarChar(32)
+  kind                QuestionKind
+  elementCode         ElementCode?
+  text                String               @db.Text
+  orientation         QuestionOrientation?
+  allowNA             Boolean
+  officialOrder       Int
+  orderInElement      Int?
+  displayOrder        Int
+  sourceGlobalId      Int?
+  sourceOfficialCode  String?              @db.VarChar(32)
+  sourceLocator       String               @db.VarChar(120)
+  instrumentVersion   InstrumentVersion    @relation(fields: [instrumentVersionId], references: [id], onDelete: Restrict)
+  section             InstrumentSection    @relation(fields: [instrumentVersionId, sectionId], references: [instrumentVersionId, id], onDelete: Restrict)
+  responses           SurveyResponse[]
+  @@unique([instrumentVersionId, code])
+  @@unique([instrumentVersionId, displayOrder])
+  @@unique([instrumentVersionId, id])
 }

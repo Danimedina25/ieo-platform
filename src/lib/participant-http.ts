@@ -12,10 +12,10 @@ export function participantFailure(error: unknown) {
   console.error("PARTICIPANT_OPERATION_FAILED_INTERNAL");
   return participantResponse({ error: "No se pudo procesar la solicitud." }, 500);
 }
-export async function participantMutation(request: Request, action: (body: unknown) => Promise<NextResponse>, hasBody = false) {
+export async function participantMutation(request: Request, action: (body: unknown) => Promise<NextResponse>, hasBody = false, maxBytes = 16_384) {
   if (!validMutationOrigin(request)) return participantResponse({ error: "Solicitud no permitida." }, 403);
   let body: unknown;
-  if (hasBody) { try { body = await boundedJson(request, 16_384); } catch { return participantResponse({ error: "Datos inválidos." }, 400); } }
+  if (hasBody) { try { body = await boundedJson(request, maxBytes); } catch { return participantResponse({ error: "Datos inválidos." }, 400); } }
   try { return await action(body); } catch (error) { return participantFailure(error); }
 }
 export async function cookieValue(kind: "auth" | "preauth") { return (await cookies()).get(participantCookie(kind).name)?.value; }

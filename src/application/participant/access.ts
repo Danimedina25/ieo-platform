@@ -5,6 +5,7 @@ import { decryptEmail, generateOtp, hashBearer, isBearer, matchesOtp, otpHmac, r
 import { participantConfig } from "@/infrastructure/participant/config";
 import { participantSessionExpiry, participantSessionUsable } from "@/domain/participant/session";
 import type { Prisma } from "@/generated/prisma/client";
+import { instrumentVersionForPerspective } from "./instruments";
 
 export class ParticipantError extends Error { constructor(public status: number, message: string) { super(message); } }
 function fail(status: number, message = "Acceso no disponible."): never { throw new ParticipantError(status, message); }
@@ -81,7 +82,9 @@ export async function verifyOtp(context: string | undefined, otp: string) {
     await tx.accessChallenge.update({ where: { id: fresh.id }, data: { consumedAt: now() } });
     let binding = await tx.participantAccessBinding.findUnique({ where: { invitationId: invitation!.id }, include: { responseSession: true } });
     if (!binding) {
-      const response = await tx.responseSession.create({ data: { assessmentId: invitation!.assessmentId, assessmentPerspectiveId: invitation!.assessmentPerspectiveId, surveyCode: "TECH-SURVEY-01", surveyVersion: 1, isTest: true } });
+      const perspective = await tx.assessmentPerspective.findUniqueOrThrow({ where: { id: invitation!.assessmentPerspectiveId }, select: { perspectiveCode: true } });
+      const survey = await instrumentVersionForPerspective(tx, perspective.perspectiveCode) ?? { instrumentVersionId: null, surveyCode: "TECH-SURVEY-01", surveyVersion: 1 };
+      const response = await tx.responseSession.create({ data: { assessmentId: invitation!.assessmentId, assessmentPerspectiveId: invitation!.assessmentPerspectiveId, ...survey, isTest: true } });
       binding = await tx.participantAccessBinding.create({ data: { invitationId: invitation!.id, responseSessionId: response.id }, include: { responseSession: true } });
     }
     if (binding.revokedAt) fail(404);

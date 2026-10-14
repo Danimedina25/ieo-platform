@@ -30,6 +30,8 @@ npm run db:seed
 npm run dev
 ```
 
+El seed también carga el catálogo IEO-COL-01 v1.0. En otros ambientes (sin seed demo) se carga con `npm run db:catalog`: es idempotente y nunca modifica una versión ya cargada.
+
 Abre http://localhost:3000/login. El seed exige habilitación explícita y passwords propias. Esta secuencia no crea diagnósticos reales ni ejecuta la metodología.
 
 ## Environment
@@ -66,7 +68,7 @@ Compose contiene únicamente `mysql:8.4.10`, puerto local 3307 y volumen persist
 
 Alternativa: MySQL 8 local ya instalado, con tres bases dedicadas y permisos equivalentes. Nunca ejecutar pruebas sobre una DB cliente. En esta máquina se verificó MySQL 8.4.10 oficial aislado en /tmp, ya que Docker no está instalado; Compose no se ejecutó aquí. La instancia de validación y el `.env` temporal no sustituyen tu configuración de desarrollo.
 
-Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Catorce tablas de aplicación: ocho de Phase 1/2 y seis de Phase 3A. `_prisma_migrations` pertenece a Prisma. Phase 3A añade CHECK de `isTest=true` y forma de respuesta en MySQL 8.
+Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Dieciocho tablas de aplicación: ocho de Phase 1/2, seis de Phase 3A y cuatro de catálogo de Phase 3B (InstrumentVersion, InstrumentSection, QuestionVersion, InstrumentScaleOption). `_prisma_migrations` pertenece a Prisma. Phase 3A añade CHECK de `isTest=true` y forma de respuesta; Phase 3B, CHECK de forma de pregunta y FKs compuestas que impiden responder preguntas de otro instrumento.
 
 ## Prisma migrations
 
@@ -137,13 +139,14 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 
 ## Current implementation status
 
-**Phase 1, Phase 2 y Phase 3A implementadas.** Se puede configurar un borrador, gestionar segmentos y probar el flujo técnico de invitación → OTP → respuestas → reanudación → envío. **PRUEBA TÉCNICA — NO ES UN INSTRUMENTO IEO® OFICIAL.** No hay COL oficial, cómputo IEO®, cierre ni resultados. Evidencia y límites: [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-001–GAP-013 siguen abiertos.
+**Phase 1, Phase 2, Phase 3A y Phase 3B implementadas.** Se puede configurar un borrador, gestionar segmentos y recorrer invitación → OTP → respuestas → reanudación → envío. Las invitaciones COL reciben el cuestionario IEO-COL-01 v1.0 (73 + 8, envío con ≥ 60 % por Elemento); las demás perspectivas, la encuesta técnica. **Sólo datos ficticios** mientras GAP-012 siga abierto. No hay cómputo IEO®, cierre ni resultados. Evidencia y límites: [PHASE3B_VALIDATION.md](docs/PHASE3B_VALIDATION.md), [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-003/004/005/006/014 tienen resolución registrada; el resto sigue abierto ([METHODOLOGY_GAPS.md](docs/METHODOLOGY_GAPS.md)).
 
 ## Documentación
 
 - [Decisiones y alcance de Phase 1](docs/PHASE1_DECISIONS.md)
 - [Decisiones de Phase 2](docs/PHASE2_DECISIONS.md) y [validación](docs/PHASE2_VALIDATION.md)
 - [Decisiones de Phase 3A](docs/PHASE3A_DECISIONS.md) y [validación](docs/PHASE3A_VALIDATION.md)
+- [Decisiones de Phase 3B](docs/PHASE3B_DECISIONS.md) y [validación](docs/PHASE3B_VALIDATION.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)
