@@ -25,6 +25,7 @@ Requirement: Texto exacto y sincronizado del instrumento.
 Question: Word dice «mi líder inmediato»; Excel dice «mi jefe inmediato» en COL_E04_R028. La jerarquía documental ya da precedencia al cuestionario. ¿Cómo formalizará el custodio la corrección del diccionario/banco y su versión antes de publicar la importación?
 Technical impact: Rechazar una importación certificada como idéntica mientras exista esta diferencia. Conservar el texto de Word como fuente primaria, sin modificar silenciosamente archivos oficiales.
 Suggested options, if applicable: Fe de erratas versionada o nueva entrega sincronizada. La precedencia no necesita inventarse; la corrección oficial sigue pendiente.
+Resolution: **Resuelto** (confirmado por Daniel Medina, 2026-10-14): el texto oficial de COL_E04_R028 es «mi **líder** inmediato», como en el Word. El importador usará ese texto y dejará registrada la diferencia con el Excel S05 («jefe»); los archivos originales no se modifican. Una fe de erratas formal del diccionario queda como mejora documental, no como bloqueo.
 
 ### GAP-004
 
@@ -33,6 +34,7 @@ Requirement: Obligatoriedad compatible con participación voluntaria e instrumen
 Question: No hay campo `required` por pregunta en el Excel ni una regla explícita de obligatoriedad en los instrumentos. ¿Qué preguntas son obligatorias y puede enviarse definitivamente un cuestionario con omisiones, incluidas abiertas?
 Technical impact: Bloquea validación definitiva del envío; no convertir cada pregunta en obligatoria ni asignar N/A automáticamente. Borradores y distinción MISSING/NA sí pueden diseñarse.
 Suggested options, if applicable: Matriz oficial por pregunta/tipo y ejemplos de envío parcial permitido.
+Resolution: **Resuelto** por Marco (custodio metodológico), comunicado por Pedro Eloy Rodríguez; registrado 2026-10-14. (1) Ningún reactivo es obligatorio de forma individual; las omisiones cuantitativas se conservan como MISSING, nunca como NA. (2) Las preguntas abiertas son opcionales; se puede enviar con todas vacías. (3) El envío definitivo sólo se permite si **cada uno de los Elementos** del instrumento alcanza cobertura ≥ 60 %, con cobertura = respondidos válidos / (reactivos del Elemento − NA), igual que T06N, en todos los instrumentos. Ejemplo: 10 reactivos con 2 NA → se requieren ≥ 5 válidos (5/8 = 62.5 %). (4) Por debajo del umbral, el cuestionario queda guardado como borrador y no puede enviarse. Nota: las fuentes (Protocolo §11, Especificaciones §17, Modelo Matemático §5.1) usan el 60 % sólo para calcular la PI de cada Elemento después del cierre (ND si no se alcanza); el bloqueo del envío es una regla nueva del custodio y por ahora no se incorporará a una versión oficial del Protocolo/Especificaciones (decisión confirmada 2026-10-14); este registro es su fuente de trazabilidad. Elemento con todos sus reactivos NA (0/0): ver GAP-006. Casos de aceptación por aprobar: frontera exacta 60 %, 59.x %, mezcla NA+MISSING, un solo Elemento por debajo del umbral.
 
 ### GAP-005
 
@@ -41,6 +43,7 @@ Requirement: Evaluar incompletos por Elemento y preservar envío voluntario.
 Question: Al cerrar, ¿un borrador guardado pero nunca enviado puede incorporarse al cálculo? ¿Qué aceptación informada y acto de autorización lo habilitan? Las fuentes ordenan conservarlo, pero no distinguen claramente conservación de inclusión analítica.
 Technical impact: Congelar todos los registros preserva evidencia; la selección del conjunto analítico requiere regla aprobada. No incluir ni descartar automáticamente borradores. Bloquea procesar un conjunto con esta situación sin resolución.
 Suggested options, if applicable: Sólo enviados, o borradores con consentimiento y criterio explícito. Ninguna opción se adopta aquí.
+Resolution: **Resuelto** (Marco vía Pedro; complemento decidido por Daniel Medina, 2026-10-14, confirmado 2026-10-14): sólo los cuestionarios con envío definitivo (SUBMITTED) entran al cálculo. Todo borrador se conserva pero no entra, alcance o no el umbral de GAP-004. El cálculo se ejecuta tras el cierre sobre los enviados; no espera a que todos los invitados cumplan, porque la participación es voluntaria. La suficiencia de participación por perspectiva (cuántas personas) es otro tema: GAP-009.
 
 ### GAP-006
 
@@ -49,6 +52,7 @@ Requirement: Cobertura y PI cuando todo un Elemento es N/A.
 Question: El denominador es total menos N/A; si todos son N/A queda 0/0. La matriz deja la cobertura vacía cuando el denominador es cero. ¿Qué coverage_status y reason_code oficiales corresponden y se admite coverage_rate NULL? No existe evidencia para producir una PI numérica.
 Technical impact: Nunca dividir por cero ni inventar 0 % o 100 %. Reservar valor nulo y motivo técnico pendiente; acordar estado oficial y fixture antes de certificar ese caso.
 Suggested options, if applicable: Definición explícita de ND, cobertura no calculable y motivo, con ejemplo oficial.
+Resolution: **Resuelto** (propuesta confirmada 2026-10-14): para el umbral de envío de GAP-004, un Elemento con todos sus reactivos en NA (0/0) **no bloquea el envío**, porque NA es una respuesta legítima y las instrucciones oficiales piden no responder por intuición. Bloquearlo sería incoherente con 1 válido + resto NA = 100 %. El cuestionario entra al cálculo; ese Elemento queda ND para esa persona (sin PI) y no cuenta en Nₚ al calcular su RP. Sus demás Elementos sí entran. Sigue pendiente el coverage_status/reason_code oficial.
 
 ### GAP-007
 
@@ -105,3 +109,13 @@ Requirement: Todos los 23 casos críticos deben obtener PASS.
 Question: El comparador de T05 devuelve vacío si platform_score_100 está vacío, aunque el derivado esperado es NULL; no puede certificar PASS de ese caso mediante esa celda. M5 de T19 compara valor pero no valida LIMITED. ¿Se aprueba una matriz corregida o un registro automatizado que compare explícitamente valor, nulidad y estado?
 Technical impact: Un Excel sin FAIL no equivale a aceptación completa. Los tests deberán verificar las expectativas documentadas, incluidos estados, y adjuntar la discrepancia del comparador sin alterar el original.
 Suggested options, if applicable: Fe de erratas del evaluador o aceptación firmada de fixtures tipados que preserven todas las expectativas oficiales.
+
+### GAP-014
+
+Document: Propuesta de Pedro Eloy Rodríguez (2026-10-14), no aprobada por Marco; S07–S11 (orden de los instrumentos); [ARCHITECTURE.md](ARCHITECTURE.md) (`displayOrder` oficial).
+Requirement: Mostrar los instrumentos en su orden oficial.
+Question: Pedro propone rotar el orden de los Elementos por participante para que las omisiones no se concentren en los últimos Elementos. ¿Lo aprueba el custodio? Si se aprueba: ¿se rotan bloques completos de Elemento o reactivos individuales?, ¿cómo quedan las abiertas y la introducción?, ¿afecta la validez del instrumento por efectos de orden?
+Technical impact: Con el umbral ≥ 60 % por Elemento (GAP-004), ningún cuestionario enviado puede tener un Elemento sin evidencia suficiente, así que la rotación aporta menos que con un umbral global. Si se adopta, hay que guardar la semilla y el orden mostrado en ResponseSession para auditar y reanudar con el mismo orden. Hasta entonces se conserva el orden oficial.
+Source conflict: El Protocolo Oficial de Aplicación §10 exige conservar "integridad de reactivos, orden del instrumento, escala y opciones de respuesta" en cualquier modalidad, y el Documento Maestro §5.4 indica "No alterar texto, orden, escala u orientación". La rotación contradice ambas fuentes; sólo podría adoptarse con una modificación oficial versionada del Protocolo aprobada por Marco.
+Suggested options, if applicable: Mantener orden oficial (conforme a fuentes); o rotación de bloques completos por Elemento con orden persistido por sesión, sólo tras cambio oficial del Protocolo.
+Resolution: **Descartado por ahora** (confirmado 2026-10-14). Se mantiene el orden oficial de cada instrumento. Podría reconsiderarse con evidencia del pilotaje y un cambio oficial del Protocolo.
