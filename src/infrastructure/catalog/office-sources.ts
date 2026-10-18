@@ -32,6 +32,8 @@ function zipEntries(buffer: Buffer) {
   }
   return entries;
 }
+/** Text contents of every entry of a ZIP buffer (used to verify export packages). */
+export function zipTextEntries(buffer: Buffer) { return new Map([...zipEntries(buffer)].map(([name, read]) => [name, read()])); }
 function entry(entries: Map<string, () => string>, name: string) {
   const read = entries.get(name);
   if (!read) throw new Error(`Falta ${name} en el archivo fuente.`);

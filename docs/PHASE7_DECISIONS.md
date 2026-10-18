@@ -1,6 +1,6 @@
 # Phase 7 — decisiones previas al código
 
-Estado: **aprobada el 2026-10-18**. Phase 6 está terminada ([PHASE6_VALIDATION.md](PHASE6_VALIDATION.md)). Phase 7 agrega las cuatro exportaciones oficiales, los permisos excepcionales para datos individuales (GAP-011), la auditoría de lecturas y descargas, y los procedimientos de respaldo, restauración y reproducción histórica. Sigue siendo con datos de prueba (GAP-012).
+Estado: **aprobada el 2026-10-18 e implementada**; evidencia en [PHASE7_VALIDATION.md](PHASE7_VALIDATION.md). Phase 6 está terminada ([PHASE6_VALIDATION.md](PHASE6_VALIDATION.md)). Phase 7 agrega las cuatro exportaciones oficiales, los permisos excepcionales para datos individuales (GAP-011), la auditoría de lecturas y descargas, y los procedimientos de respaldo, restauración y reproducción histórica. Sigue siendo con datos de prueba (GAP-012).
 
 ## Permisos excepcionales (GAP-011, propuesta provisional)
 
@@ -62,3 +62,12 @@ XLSX (CSV es suficiente según el plan), reporte diagnóstico automático (GAP-0
 - Integración MySQL: cada exportación con y sin permiso; supresión correcta; ninguna exportación ordinaria con IDs de sesión, correos o PI; permiso vencido, revocado o autoaprobado rechazado; IDOR; auditoría de lecturas y descargas; `verify:history` reproduce los hashes.
 - Playwright: el consultor descarga EXP04, EXP03 y EXP02 de reporte; solicita un permiso; el custodio lo aprueba; el consultor descarga EXP01.
 - Prueba de restauración documentada con su evidencia. Las suites anteriores siguen pasando.
+
+## Cierre de implementación
+
+- `src/domain/exports` (CSV con neutralización, ZIP, supresión), `src/application/grants.ts`, `src/application/exports.ts`, `src/infrastructure/history/verify.ts`, la pestaña **Exportaciones**, la página **Custodia** y las rutas `/api/assessments/[id]/exports`, `/api/assessments/[id]/grants` y `/api/grants/[grantId]`.
+- La descarga es un `POST` (no `GET`): generar una exportación escribe su registro y su auditoría, y pasa la verificación de origen.
+- El permiso pertenece a quien lo pidió: sólo esa persona lo usa para exportar. El solicitante puede revocar el suyo; el custodio, cualquiera.
+- La regla «nadie aprueba su propia solicitud» y la vigencia máxima de 30 días también son CHECK de MySQL.
+- La CSP completa se aplica a todo el sitio (antes sólo a las páginas de participante) y todas las rutas `/api` responden con `no-store`.
+- `scripts/backup.sh`, `scripts/restore.sh`, `npm run verify:history` y [OPERATIONS.md](OPERATIONS.md). La rotación de `PARTICIPANT_ENCRYPTION_KEY` queda documentada como pendiente: requiere un comando de recifrado que no se implementó.

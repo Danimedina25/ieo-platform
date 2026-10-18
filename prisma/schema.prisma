@@ -125,6 +125,23 @@ enum DisclosureDecision {
   REPORTABLE
   NOT_REPORTABLE
 }
+enum GrantScope {
+  RAW_RESPONSES
+  INDIVIDUAL_SCORES
+  QUALITATIVE_ORIGINAL
+}
+enum ExportCode {
+  EXP01
+  EXP02
+  EXP03
+  EXP04
+}
+enum ExportVariant {
+  STANDARD
+  REPORT
+  TECHNICAL
+  FULL
+}
 enum AuditAction {
   TEST_INVITATION_CREATED
   TEST_INVITATION_REISSUED
@@ -146,6 +163,12 @@ enum AuditAction {
   PATTERN_RECORDED
   QUALITATIVE_REVIEWED
   DISCLOSURE_RECORDED
+  QUALITATIVE_READ
+  GRANT_REQUESTED
+  GRANT_APPROVED
+  GRANT_REJECTED
+  GRANT_REVOKED
+  EXPORT_GENERATED
   ORGANIZATION_CREATED
   ASSESSMENT_CREATED
   ASSESSMENT_UPDATED
@@ -166,6 +189,7 @@ model User {
   passwordHash   String     @db.VarChar(255)
   status         UserStatus @default(ACTIVE)
   technicalAdmin Boolean    @default(false)
+  methodologyCustodian Boolean @default(false)
   createdAt      DateTime   @default(now()) @db.DateTime(3)
   updatedAt      DateTime   @updatedAt @db.DateTime(3)
   sessions       AdminSession[]
@@ -184,6 +208,10 @@ model User {
   recordedPatterns   TriangulationPattern[] @relation("PatternRecordedBy")
   qualitativeReviews QualitativeReview[] @relation("QualitativeReviewedBy")
   disclosureReviews  DisclosureReview[] @relation("DisclosureReviewedBy")
+  requestedGrants    SensitiveAccessGrant[] @relation("GrantRequestedBy")
+  decidedGrants      SensitiveAccessGrant[] @relation("GrantDecidedBy")
+  revokedGrants      SensitiveAccessGrant[] @relation("GrantRevokedBy")
+  exports            ExportRecord[] @relation("ExportRequestedBy")
 }
 
 model AdminSession {
@@ -255,6 +283,8 @@ model Assessment {
   incidents      Incident[]
   snapshots      FrozenSnapshot[]
   processingRuns ProcessingRun[]  @relation("AssessmentRuns")
+  grants         SensitiveAccessGrant[]
+  exports        ExportRecord[]
   perspectives   AssessmentPerspective[]
   segments       Segment[]
   invitations    Invitation[]
@@ -640,6 +670,7 @@ model ProcessingRun {
   patterns         TriangulationPattern[]
   qualitativeReviews QualitativeReview[]
   disclosureReviews DisclosureReview[]
+  exports          ExportRecord[]
   @@index([assessmentId, requestedAt])
   @@index([snapshotId])
   @@index([requestedById])
@@ -748,4 +779,50 @@ model DisclosureReview {
   reviewedBy      User               @relation("DisclosureReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict)
   @@index([runId, perspectiveCode, reviewedAt])
   @@index([reviewedById])
+}
+
+model SensitiveAccessGrant {
+  id            String        @id @default(uuid()) @db.Char(36)
+  assessmentId  String        @db.Char(36)
+  scope         GrantScope
+  purpose       String        @db.Text
+  requestedById String        @db.Char(36)
+  requestedAt   DateTime      @db.DateTime(3)
+  expiresAt     DateTime      @db.DateTime(3)
+  decidedById   String?       @db.Char(36)
+  decidedAt     DateTime?     @db.DateTime(3)
+  approved      Boolean?
+  decisionNote  String?       @db.Text
+  revokedById   String?       @db.Char(36)
+  revokedAt     DateTime?     @db.DateTime(3)
+  assessment    Assessment    @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  requestedBy   User          @relation("GrantRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  decidedBy     User?         @relation("GrantDecidedBy", fields: [decidedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  revokedBy     User?         @relation("GrantRevokedBy", fields: [revokedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  exports       ExportRecord[]
+  @@index([assessmentId, scope, expiresAt])
+  @@index([requestedById])
+  @@index([decidedById])
+  @@index([revokedById])
+}
+
+model ExportRecord {
+  id            String                @id @default(uuid()) @db.Char(36)
+  assessmentId  String                @db.Char(36)
+  runId         String                @db.Char(36)
+  exportCode    ExportCode
+  variant       ExportVariant
+  grantId       String?               @db.Char(36)
+  requestedById String                @db.Char(36)
+  requestedAt   DateTime              @db.DateTime(3)
+  rowCount      Int
+  manifestHash  String                @db.Char(64)
+  assessment    Assessment            @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  run           ProcessingRun         @relation(fields: [runId], references: [id], onDelete: Restrict)
+  grant         SensitiveAccessGrant? @relation(fields: [grantId], references: [id], onDelete: Restrict)
+  requestedBy   User                  @relation("ExportRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  @@index([assessmentId, requestedAt])
+  @@index([runId])
+  @@index([grantId])
+  @@index([requestedById])
 }

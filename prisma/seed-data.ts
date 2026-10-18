@@ -18,7 +18,7 @@ export function seedEnvironment() {
     SEED_USER_PASSWORD: z.string().min(12).max(128),
   }).safeParse(process.env);
   if (!result.success) throw new Error("Seed requiere SEED_ADMIN_EMAIL válido y SEED_ADMIN_PASSWORD / SEED_USER_PASSWORD de 12 a 128 caracteres. No se generan contraseñas.");
-  if (["consultor@ieo.local", "coordinador@ieo.local", "consultor2@ieo.local"].includes(result.data.SEED_ADMIN_EMAIL)) throw new Error("SEED_ADMIN_EMAIL debe ser distinto de los usuarios demo.");
+  if (["consultor@ieo.local", "coordinador@ieo.local", "consultor2@ieo.local", "custodio@ieo.local"].includes(result.data.SEED_ADMIN_EMAIL)) throw new Error("SEED_ADMIN_EMAIL debe ser distinto de los usuarios demo.");
   return result.data;
 }
 export async function seedDemo(client: PrismaClient) {
@@ -33,9 +33,11 @@ export async function seedDemo(client: PrismaClient) {
       { email: "consultor@ieo.local", name: "Consultor demo A", technicalAdmin: false, passwordHash: userHash, organizationId: demoIds.organizationA, role: "IEO_CONSULTANT" as const },
       { email: "coordinador@ieo.local", name: "Coordinador demo A", technicalAdmin: false, passwordHash: userHash, organizationId: demoIds.organizationA, role: "ORG_COORDINATOR" as const },
       { email: "consultor2@ieo.local", name: "Consultor demo B", technicalAdmin: false, passwordHash: userHash, organizationId: demoIds.organizationB, role: "IEO_CONSULTANT" as const },
+      // Methodology custodian (GAP-011, provisional): approves exceptional access; no organization membership.
+      { email: "custodio@ieo.local", name: "Custodio metodológico demo", technicalAdmin: false, methodologyCustodian: true, passwordHash: userHash },
     ];
     for (const entry of entries) {
-      const data = { email: entry.email, name: entry.name, technicalAdmin: entry.technicalAdmin, passwordHash: entry.passwordHash, status: "ACTIVE" as const };
+      const data = { email: entry.email, name: entry.name, technicalAdmin: entry.technicalAdmin, methodologyCustodian: "methodologyCustodian" in entry && entry.methodologyCustodian === true, passwordHash: entry.passwordHash, status: "ACTIVE" as const };
       const user = await tx.user.upsert({ where: { email: entry.email }, create: data, update: data });
       await tx.adminSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
       if (entry.organizationId && entry.role) {

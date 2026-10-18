@@ -102,7 +102,7 @@ export async function recordDisclosure(token: string | undefined, assessmentId: 
 export async function listQualitative(token: string | undefined, assessmentId: string, input: unknown) {
   const user = await requireAuthenticatedUser(token);
   const filter = qualitativeFilterSchema.parse(input);
-  await consultantAssessment(db(), user.id, assessmentId);
+  const assessment = await consultantAssessment(db(), user.id, assessmentId);
   const run = await successfulRun(db(), assessmentId, filter.runId);
   const sessionIds = (run.snapshot.payloadJson as unknown as SnapshotPayload).sessions.map(row => row.sessionId);
   const rows = await db().surveyResponse.findMany({
@@ -110,6 +110,8 @@ export async function listQualitative(token: string | undefined, assessmentId: s
     select: { id: true, textCiphertext: true, questionVersion: { select: { code: true, text: true, elementCode: true, instrumentVersion: { select: { perspectiveCode: true } } } }, qualitativeReviews: { where: { runId: run.id }, orderBy: { reviewedAt: "asc" }, select: { status: true, redactedCiphertext: true } } },
   });
   const order = (id: string) => createHash("sha256").update(`${run.id}:${id}`).digest("hex");
+  // Reading original open answers is audited with the count only, never the content (Phase 7).
+  await db().auditLog.create({ data: { organizationId: assessment.organizationId, assessmentId, actorUserId: user.id, action: "QUALITATIVE_READ", entityType: "ProcessingRun", entityId: run.id, metadataJson: { count: rows.length, perspectiveCode: filter.perspectiveCode, elementCode: filter.elementCode } } });
   return rows.sort((a, b) => order(a.id).localeCompare(order(b.id))).map(row => {
     const review = row.qualitativeReviews.at(-1);
     return {
