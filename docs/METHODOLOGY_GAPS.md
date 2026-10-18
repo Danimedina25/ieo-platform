@@ -61,6 +61,7 @@ Requirement: Clasificaciones y redondeo deterministas sin redondeo intermedio.
 Question: ¿Cómo clasificar BT=12.4/12.5/24.8/37.5 y salud=79.5/89.5/94.5? Los intervalos escritos dejan huecos decimales; el modelo recomienda entero final pero no precisa si la clase usa el valor exacto o redondeado ni cómo resolver empates .5. ¿La misma política aplica a PI/RP/RI y Global?
 Technical impact: Bloquea clasificación automática completa y reporte ejecutivo; las fórmulas y valores exactos siguen siendo especificables. No extender intervalos por decisión técnica.
 Suggested options, if applicable: Clasificar tras redondeo oficial o definir intervalos continuos sobre el valor exacto; aprobar ejemplos para cada frontera y una regla de empate.
+Resolution: **Resuelto parcialmente** (Marco vía Pedro, 2026-10-16): el Índice Global se redondea al entero **sólo al final** y la clasificación (nivel de salud y semáforo) se hace con ese entero. Un .5 exacto **no sube**: 79.5 → 79 (Estable con riesgos); a partir de 79.6 sí sube: 79.6 → 80 (Saludable). Es decir, se sube sólo si la parte decimal es mayor que 0.5. Para la BT: **Adoptado provisionalmente** (Daniel Medina, 2026-10-17; pendiente de confirmación de Marco; si cambia, se publica una versión nueva de la regla): misma regla (12.5 → 12; 12.6 → 13), clasificación con el entero. PI/RP/RI se presentan con hasta un decimal (Modelo §13) en Phase 6.
 
 ### GAP-008
 
@@ -69,6 +70,7 @@ Requirement: Diferenciar COMPLETE, LIMITED y ND; IEO por perspectiva parcial.
 Question: Con menos de ocho RI INTEGRATED, ¿LIMITED lleva un valor numérico o sólo una limitación? ¿Cuál es la frontera entre LIMITED y ND global? Para IEO por perspectiva con Elementos faltantes, ¿se omite el índice o se admite un parcial y con qué fórmula/etiqueta?
 Technical impact: No promediar arbitrariamente los Elementos disponibles ni llamar completo al promedio de ocho RI LIMITED. Mantener los resultados válidos por Elemento y bloquear la salida global parcial no definida.
 Suggested options, if applicable: Omitir índices incompletos o publicar una fórmula parcial explícita y versionada; ninguna se selecciona.
+Resolution: **Adoptado provisionalmente** (Daniel Medina, 2026-10-17; pendiente de confirmación de Marco; si cambia, se publica una versión nueva de la regla). Global COMPLETE con 8 RI INTEGRATED; LIMITED (con valor, etiquetado y listando los Elementos con una sola perspectiva) si los 8 Elementos tienen RI y al menos uno es INTEGRATED; ND si algún Elemento no tiene RI o ningún Elemento está integrado (diagnóstico de una sola perspectiva: se reporta el IEO de esa perspectiva). IEO por perspectiva sólo con sus 8 RP válidos; si le falta uno, ND y se muestran sus RP por Elemento.
 
 ### GAP-009
 
@@ -77,6 +79,7 @@ Requirement: RP exige PI válidas y suficiencia metodológica; dictamen A/B/C.
 Question: ¿Cómo se traduce un dictamen C global, por perspectiva o excepcionalmente por Elemento en elegibilidad para RP, BT, RI y Global? ¿Puede haber cálculo técnico restringido pero no publicación? ¿Qué reservas de B deben acompañar cada salida?
 Technical impact: El porcentaje de participación no sustituye el juicio del consultor. Registrar dictamen por alcance y elegibilidad explícita; no inferir automáticamente que una PI válida habilita publicación. Se necesita regla de transición y fixtures.
 Suggested options, if applicable: Tabla oficial dictamen × alcance × permiso de cálculo/publicación, conservando reservas.
+Resolution: **Adoptado provisionalmente** (Daniel Medina, 2026-10-17; pendiente de confirmación de Marco; si cambia, se publica una versión nueva de la regla). A: normal. B: se calcula y publica con la nota de reservas obligatoria. C en una perspectiva: sus RP quedan ND con motivo QUALITY_C y no entran a BT, RI ni Global; el cálculo se conserva para auditoría. C global: no se publican resultados. C por Elemento (excepcional): el RP de esa perspectiva en ese Elemento queda ND con el mismo motivo.
 
 ### GAP-010
 
@@ -85,6 +88,7 @@ Requirement: Exclusiones y correcciones excepcionales sin perder congelamiento.
 Question: ¿Quién autoriza reaperturas/correcciones, qué puede corregirse y cómo afectan exclusiones a un reactivo frente a una sesión completa y al denominador? El Excel marca exclusiones mutables después de freeze, mientras S04 congela las exclusiones aprobadas.
 Technical impact: La propuesta preserva snapshots y originales, pero no habilita cambios sobre una revisión congelada. Bloquea el procedimiento excepcional y la exclusión por reactivo hasta su definición.
 Suggested options, if applicable: Nueva revisión autorizada con acta y motivo, manteniendo la anterior. Precisar si sólo se excluyen sesiones o también reactivos y el tratamiento matemático de estos últimos.
+Resolution: **Adoptado provisionalmente** (Daniel Medina, 2026-10-17; pendiente de confirmación de Marco; si cambia, se publica una versión nueva de la regla), conforme a Protocolo §3 y §15 y Especificaciones §33. Sólo se excluyen cuestionarios completos, con motivo de lista (duplicado, prueba, fuera de población, incidencia técnica, manipulación reportada), autorizados por el Consultor IEO antes del congelamiento y registrados en el acta. La reapertura la autoriza el Consultor IEO con motivo; crea una revisión nueva y conserva intacta la anterior.
 
 ### GAP-011
 
