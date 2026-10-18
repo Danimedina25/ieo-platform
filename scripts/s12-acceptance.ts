@@ -10,7 +10,7 @@ const results = runS12("docs");
 const official = results.filter(row => row.caseId.startsWith("T"));
 const boundaries = results.filter(row => row.caseId.startsWith("B"));
 let commit = "sin git";
-try { commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() + (execSync("git status --porcelain", { encoding: "utf8" }).trim() ? " (con cambios locales)" : ""); } catch { /* outside a repository */ }
+try { commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() + (execSync("git status --porcelain -- . ':!docs/PHASE5A_ACCEPTANCE.md'", { encoding: "utf8" }).trim() ? " (con cambios locales)" : ""); } catch { /* outside a repository */ }
 const cell = (text: string) => text.replace(/\|/g, "\\|");
 const table = (rows: typeof results) => ["| Caso | Capa | Nombre | Esperado | Obtenido | Resultado |", "|---|---|---|---|---|---|", ...rows.map(row => `| ${row.caseId} | ${row.layer} | ${cell(row.name)} | ${cell(row.expected)} | ${cell(row.obtained)} | **${row.pass ? "PASS" : "FAIL"}** |`)].join("\n");
 const report = `# Phase 5A — registro de aceptación S12
