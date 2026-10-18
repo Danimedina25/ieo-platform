@@ -4,9 +4,9 @@ Generado por `npm run test:acceptance` (runner automatizado). No editar a mano: 
 
 | Campo | Valor |
 |---|---|
-| Fecha de ejecución (UTC) | 2026-10-18T01:13:46.973Z |
+| Fecha de ejecución (UTC) | 2026-10-18T01:13:56.524Z |
 | Versión del motor | 1.0.0 |
-| Commit | 15d62dc (con cambios locales) |
+| Commit | 51a6f3f |
 | Matriz | Matriz_Casos_Prueba_Resultados_Esperados_IEO_v1.0.xlsx |
 | SHA-256 de la matriz | `ef5f19bbb3e53d7fa0e0b47823a0742cfe86bf32988e494868bcd33c28d1f9ce` |
 | Casos críticos | 23 PASS / 23 (0 FAIL) |
