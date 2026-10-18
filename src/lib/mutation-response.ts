@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 import { AccessDeniedError, UnauthenticatedError } from "@/application/authorization";
+import { LifecycleError } from "@/application/closure";
 import { boundedJson, validMutationOrigin } from "./http-security";
 
 export async function mutationResponse<T>(request: Request, operation: (input: unknown) => Promise<T>, hasBody = true): Promise<NextResponse> {
@@ -17,6 +18,7 @@ export async function mutationResponse<T>(request: Request, operation: (input: u
   } catch (error) {
     if (error instanceof UnauthenticatedError) return NextResponse.json({ error: "Sesión requerida." }, { status: 401 });
     if (error instanceof AccessDeniedError) return NextResponse.json({ error: "Recurso no disponible." }, { status: 404 });
+    if (error instanceof LifecycleError) return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Revisa los campos indicados.", fields: error.issues.map(issue => issue.path.join(".")) }, { status: 400 });
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ error: "Ya existe un registro con esos datos." }, { status: 409 });
     console.error("WORKSPACE_MUTATION_FAILED_INTERNAL");

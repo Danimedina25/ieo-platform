@@ -19,7 +19,7 @@ const invitationIds: string[] = [];
 let admin = "", bearer = "", revision = 0, responseSessionId = "", espSessionId = "";
 function mail(kind: "link" | "otp") { return readFileSync(mailbox, "utf8").trim().split("\n").map(line => JSON.parse(line) as { kind: string; value: string }).filter(row => row.kind === kind).at(-1)!.value; }
 async function participant(perspectiveCode: "COL" | "ESP", name: string) {
-  const row = await createInvitation(admin, demoIds.assessmentA, { email: `${name}-${tag}@example.test`, perspectiveCode, expiresAt: new Date(Date.now() + 86400_000).toISOString() });
+  const row = await createInvitation(admin, demoIds.assessmentOpenA, { email: `${name}-${tag}@example.test`, perspectiveCode, expiresAt: new Date(Date.now() + 86400_000).toISOString() });
   invitationIds.push(row.id);
   const context = (await startAccess(mail("link").split("/").at(-1)!)).bearer;
   const result = await verifyOtp(context, mail("otp"));

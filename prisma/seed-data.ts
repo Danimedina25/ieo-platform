@@ -8,6 +8,8 @@ export const demoIds = {
   organizationB: "b1000000-0000-4000-8000-000000000002",
   assessmentA: "a2000000-0000-4000-8000-000000000001",
   assessmentB: "b2000000-0000-4000-8000-000000000002",
+  /** Organization A, five applicable perspectives, OPEN: used to answer questionnaires in tests. */
+  assessmentOpenA: "a3000000-0000-4000-8000-000000000003",
 };
 export function seedEnvironment() {
   const result = z.object({
@@ -41,9 +43,17 @@ export async function seedDemo(client: PrismaClient) {
         await tx.organizationMembership.upsert({ where: { organizationId_userId_role: key }, create: key, update: { active: true } });
       }
     }
-    for (const [id, organizationId, name] of [[demoIds.assessmentA, demoIds.organizationA, "Diagnóstico Demo A 2026"], [demoIds.assessmentB, demoIds.organizationB, "Diagnóstico Demo B 2026"]]) {
+    for (const [id, organizationId, name] of [[demoIds.assessmentA, demoIds.organizationA, "Diagnóstico Demo A 2026"], [demoIds.assessmentB, demoIds.organizationB, "Diagnóstico Demo B 2026"], [demoIds.assessmentOpenA, demoIds.organizationA, "Aplicación de prueba A 2026"]]) {
       await tx.assessment.upsert({ where: { id }, create: { id, organizationId, name, period: "2026", status: "DRAFT" }, update: { name, period: "2026" } });
       await tx.assessmentPerspective.createMany({ data: perspectiveCodes.map(perspectiveCode => ({ assessmentId: id, perspectiveCode })), skipDuplicates: true });
     }
   });
+}
+
+/** Opens the demo application assessment once catalogs are loaded: pinned package and five applicable perspectives. */
+export async function openDemoAssessment(client: PrismaClient) {
+  const assessment = await client.assessment.findUniqueOrThrow({ where: { id: demoIds.assessmentOpenA } });
+  if (!assessment.methodologyPackageId) throw new Error("El diagnóstico de prueba no tiene paquete; cargue los catálogos antes.");
+  await client.assessmentPerspective.updateMany({ where: { assessmentId: demoIds.assessmentOpenA }, data: { applicability: "APPLICABLE" } });
+  if (assessment.status === "DRAFT") await client.assessment.update({ where: { id: demoIds.assessmentOpenA }, data: { status: "OPEN", openedAt: new Date() } });
 }

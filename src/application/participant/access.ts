@@ -12,7 +12,7 @@ function fail(status: number, message = "Acceso no disponible."): never { throw 
 const now = () => new Date();
 async function lockInvitation(tx: Prisma.TransactionClient, id: string) { await tx.$queryRaw`SELECT id FROM Invitation WHERE id = ${id} FOR UPDATE`; }
 function activeInvitation<T extends { status: string; isTest: boolean; expiresAt: Date; assessment: { status: string } }>(invitation: T | null): asserts invitation is T {
-  if (!invitation || !invitation.isTest || !["SENT", "VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.expiresAt <= now() || invitation.assessment.status !== "DRAFT") fail(404);
+  if (!invitation || !invitation.isTest || !["SENT", "VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.expiresAt <= now() || invitation.assessment.status !== "OPEN") fail(404);
 }
 export async function landing(token: string) {
   if (!isBearer(token)) fail(404);

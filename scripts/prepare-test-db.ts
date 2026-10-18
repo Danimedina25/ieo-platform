@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { selectTestDatabase } from "../tests/test-environment";
-import { seedDemo, seedEnvironment } from "../prisma/seed-data";
+import { openDemoAssessment, seedDemo, seedEnvironment } from "../prisma/seed-data";
 import { loadOfficialCatalogs } from "../src/infrastructure/catalog/load";
 async function main() {
   selectTestDatabase();
@@ -13,6 +13,17 @@ async function main() {
     const actual = await db().$queryRaw<Array<{ name: string }>>`SELECT DATABASE() AS name`;
     if (actual[0]?.name !== expected) throw new Error("La conexión no apunta a la base de pruebas esperada.");
     await db().$transaction(async tx => {
+      await tx.assessment.updateMany({ data: { currentRunId: null } });
+      await tx.globalResult.deleteMany();
+      await tx.perspectiveIndexResult.deleteMany();
+      await tx.elementResult.deleteMany();
+      await tx.perspectiveElementResult.deleteMany();
+      await tx.processingRun.deleteMany();
+      await tx.frozenSnapshot.deleteMany();
+      await tx.closureRecord.deleteMany();
+      await tx.qualityAssessment.deleteMany();
+      await tx.exclusion.deleteMany();
+      await tx.incident.deleteMany();
       await tx.participantAuthSession.deleteMany();
       await tx.accessChallenge.deleteMany();
       await tx.participantAccessBinding.deleteMany();
@@ -28,7 +39,7 @@ async function main() {
       await tx.organization.deleteMany();
       await tx.user.deleteMany();
     });
-    await seedDemo(db()); await loadOfficialCatalogs(db()); console.log("Base exclusiva de pruebas reiniciada, migrada y seed sintético aplicado.");
+    await seedDemo(db()); await loadOfficialCatalogs(db()); await openDemoAssessment(db()); console.log("Base exclusiva de pruebas reiniciada, migrada y seed sintético aplicado.");
   }
   finally { await db().$disconnect(); }
 }

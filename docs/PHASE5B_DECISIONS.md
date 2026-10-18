@@ -1,6 +1,6 @@
 # Phase 5B — decisiones previas al código
 
-Estado: **aprobada el 2026-10-18**. Phase 5A está terminada ([PHASE5A_ACCEPTANCE.md](PHASE5A_ACCEPTANCE.md)). Phase 5B conecta el motor con los diagnósticos: abrir, cerrar, documentar el cierre, congelar los datos y procesarlos. Usa las reglas provisionales de GAP-009 y GAP-010 adoptadas el 2026-10-17. Todos los datos siguen siendo de prueba (`isTest=true`) mientras GAP-012 siga abierto.
+Estado: **aprobada el 2026-10-18 e implementada**; evidencia en [PHASE5B_VALIDATION.md](PHASE5B_VALIDATION.md). Phase 5A está terminada ([PHASE5A_ACCEPTANCE.md](PHASE5A_ACCEPTANCE.md)). Phase 5B conecta el motor con los diagnósticos: abrir, cerrar, documentar el cierre, congelar los datos y procesarlos. Usa las reglas provisionales de GAP-009 y GAP-010 adoptadas el 2026-10-17. Todos los datos siguen siendo de prueba (`isTest=true`) mientras GAP-012 siga abierto.
 
 ## Ciclo de vida
 
@@ -51,3 +51,13 @@ Pantallas de resultados y triangulación (Phase 6), revisión de divulgación y 
 - Integración MySQL: ciclo completo DRAFT → PROCESSED con los cinco instrumentos; respuestas rechazadas fuera de OPEN y tras `plannedClosesAt`; exclusión que cambia el resultado; dictamen C de perspectiva y global; reproceso con el mismo hash de salida; reapertura que conserva la revisión anterior; permisos (coordinador, otra organización); el resultado del run coincide con el motor ejecutado directamente.
 - Playwright: el consultor recorre abrir → participantes responden → cerrar → dictamen y checklist → congelar → procesar.
 - Las suites anteriores siguen pasando, adaptadas a que ahora se responde sólo en OPEN.
+
+## Cierre de implementación
+
+- `src/domain/closure` (transiciones, checklist del Anexo D, validaciones, copia congelada y acta), `src/application/closure.ts` (servicios con bloqueo de fila del diagnóstico y auditoría) y la pestaña **Cierre** (`closure-workspace.tsx`) con sus rutas en `/api/assessments/[id]/…`.
+- **Detalle añadido:** una invitación creada en DRAFT queda en CREATED sin enviarse; al abrir el diagnóstico se envía con un token nuevo, para que nadie reciba un enlace que todavía no funciona.
+- Las exclusiones pertenecen a su revisión: al reabrir, la revisión nueva empieza sin exclusiones ni dictámenes.
+- Las relaciones de `ClosureRecord.authorizedById` y `Exclusion.revokedById` usan `ON UPDATE RESTRICT` para poder validar con CHECK (mismo motivo que en Phase 3B).
+- El seed agrega «Aplicación de prueba A 2026» (abierta, cinco perspectivas aplicables) para las pruebas de participantes; «Diagnóstico Demo A 2026» sigue en DRAFT para las del workspace.
+- Las pruebas E2E reutilizan la sesión del consultor: el limitador de login (10 intentos por cuenta cada 15 minutos) se rebasaba con la suite completa.
+- El run guarda el resultado exacto del motor; las tablas tipadas son proyecciones con `DECIMAL(30,18)` y la fracción exacta en texto. Las PI individuales sólo están en el resultado exacto.

@@ -18,7 +18,7 @@ beforeAll(async () => {
 afterAll(async () => { await db().user.updateMany({ where: { email: "consultor2@ieo.local" }, data: { status: "ACTIVE" } }); await db().$disconnect(); });
 it("consultor A lista/lee A, nunca B; proyección no incluye credenciales", async () => {
   const list = await listAssessmentMetadata(tokens.consultant);
-  expect(list.map(x => x.id)).toEqual([demoIds.assessmentA]);
+  expect(list.map(x => x.id).sort()).toEqual([demoIds.assessmentA, demoIds.assessmentOpenA].sort());
   expect(await readAssessmentMetadata(tokens.consultant, demoIds.assessmentA)).not.toBeNull();
   expect(await readAssessmentMetadata(tokens.consultant, demoIds.assessmentB)).toBeNull();
   expect(await readAssessmentMetadata(tokens.consultant, "unknown")).toBeNull();
@@ -27,7 +27,7 @@ it("consultor A lista/lee A, nunca B; proyección no incluye credenciales", asyn
   await expect(requireOrganizationAccess(tokens.consultant, demoIds.organizationB)).rejects.toThrow();
 });
 it("coordinador A puede leer metadata de A pero no B ni asumir rol consultor", async () => {
-  expect((await listAssessmentMetadata(tokens.coordinator)).map(x => x.id)).toEqual([demoIds.assessmentA]);
+  expect((await listAssessmentMetadata(tokens.coordinator)).map(x => x.id).sort()).toEqual([demoIds.assessmentA, demoIds.assessmentOpenA].sort());
   expect(await readAssessmentMetadata(tokens.coordinator, demoIds.assessmentA)).not.toBeNull();
   expect(await readAssessmentMetadata(tokens.coordinator, demoIds.assessmentB)).toBeNull();
   await expect(requireOrganizationRole(tokens.coordinator, demoIds.organizationA, "IEO_CONSULTANT")).rejects.toThrow();
@@ -35,7 +35,7 @@ it("coordinador A puede leer metadata de A pero no B ni asumir rol consultor", a
 it("admin puede leer metadata técnica pero no tiene membresía implícita", async () => {
   await expect(requireTechnicalAdmin(tokens.admin)).resolves.toBeDefined();
   await expect(requireTechnicalAdmin(tokens.consultant)).rejects.toThrow();
-  expect(await listAssessmentMetadata(tokens.admin)).toHaveLength(2);
+  expect(await listAssessmentMetadata(tokens.admin)).toHaveLength(3);
   await expect(requireOrganizationAccess(tokens.admin, demoIds.organizationA)).rejects.toThrow();
 });
 it("revocar membresía u organización afecta consultas inmediatamente", async () => {
@@ -86,6 +86,6 @@ it("tablas de aplicación usan InnoDB y utf8mb4 en MySQL 8", async () => {
   const version = await db().$queryRaw<Array<{ version: string }>>`SELECT VERSION() AS version`;
   expect(version[0].version).toMatch(/^8\./);
   const tables = await db().$queryRaw<Array<{ ENGINE: string; TABLE_COLLATION: string }>>`SELECT ENGINE, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME <> '_prisma_migrations'`;
-  expect(tables).toHaveLength(20);
+  expect(tables).toHaveLength(30);
   for (const table of tables) { expect(table.ENGINE).toBe("InnoDB"); expect(table.TABLE_COLLATION).toMatch(/^utf8mb4_/); }
 });

@@ -22,6 +22,10 @@ enum OrganizationRole {
 }
 enum AssessmentStatus {
   DRAFT
+  OPEN
+  CLOSED
+  FROZEN
+  PROCESSED
 }
 enum PerspectiveCode {
   DIR
@@ -88,6 +92,22 @@ enum QuestionOrientation {
   DIRECT
   REVERSE
 }
+enum QualityVerdict {
+  A
+  B
+  C
+}
+enum ExclusionReason {
+  DUPLICATE
+  TEST_RESPONSE
+  OUT_OF_POPULATION
+  TECHNICAL_INCIDENT
+  REPORTED_MANIPULATION
+}
+enum ProcessingStatus {
+  SUCCEEDED
+  FAILED
+}
 enum AuditAction {
   TEST_INVITATION_CREATED
   TEST_INVITATION_REISSUED
@@ -95,6 +115,17 @@ enum AuditAction {
   PARTICIPANT_TEST_SUBMITTED
   INSTRUMENT_VERSION_LOADED
   METHODOLOGY_PACKAGE_LOADED
+  ASSESSMENT_OPENED
+  ASSESSMENT_CLOSED
+  ASSESSMENT_REOPENED
+  EXCLUSION_RECORDED
+  EXCLUSION_REVOKED
+  INCIDENT_RECORDED
+  QUALITY_RECORDED
+  CHECKLIST_SAVED
+  ASSESSMENT_FROZEN
+  PROCESSING_SUCCEEDED
+  PROCESSING_FAILED
   ORGANIZATION_CREATED
   ASSESSMENT_CREATED
   ASSESSMENT_UPDATED
@@ -123,6 +154,13 @@ model User {
   consultantAssessments Assessment[] @relation("AssessmentConsultant")
   coordinatorAssessments Assessment[] @relation("AssessmentCoordinator")
   createdInvitations Invitation[]
+  authorizedClosures ClosureRecord[] @relation("ClosureAuthorizedBy")
+  qualityReviews     QualityAssessment[] @relation("QualityReviewedBy")
+  authorizedExclusions Exclusion[] @relation("ExclusionAuthorizedBy")
+  revokedExclusions  Exclusion[] @relation("ExclusionRevokedBy")
+  incidents          Incident[] @relation("IncidentCreatedBy")
+  frozenSnapshots    FrozenSnapshot[] @relation("SnapshotFrozenBy")
+  requestedRuns      ProcessingRun[] @relation("RunRequestedBy")
 }
 
 model AdminSession {
@@ -176,6 +214,10 @@ model Assessment {
   coordinatorUserId String?       @db.Char(36)
   methodologyNotes String?        @db.Text
   methodologyPackageId String?    @db.Char(36)
+  revisionNumber Int              @default(1)
+  openedAt       DateTime?        @db.DateTime(3)
+  closedAt       DateTime?        @db.DateTime(3)
+  currentRunId   String?          @unique @db.Char(36)
   createdAt      DateTime         @default(now()) @db.DateTime(3)
   updatedAt      DateTime         @updatedAt @db.DateTime(3)
   organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
@@ -183,6 +225,13 @@ model Assessment {
   consultant     User?            @relation("AssessmentConsultant", fields: [consultantUserId], references: [id], onDelete: Restrict)
   coordinator    User?            @relation("AssessmentCoordinator", fields: [coordinatorUserId], references: [id], onDelete: Restrict)
   methodologyPackage MethodologyPackage? @relation(fields: [methodologyPackageId], references: [id], onDelete: Restrict)
+  currentRun     ProcessingRun?   @relation("AssessmentCurrentRun", fields: [currentRunId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  closureRecords ClosureRecord[]
+  qualityAssessments QualityAssessment[]
+  exclusions     Exclusion[]
+  incidents      Incident[]
+  snapshots      FrozenSnapshot[]
+  processingRuns ProcessingRun[]  @relation("AssessmentRuns")
   perspectives   AssessmentPerspective[]
   segments       Segment[]
   invitations    Invitation[]
@@ -332,7 +381,9 @@ model ResponseSession {
   binding                 ParticipantAccessBinding?
   responses               SurveyResponse[]
   instrumentResponses     SurveyResponse[] @relation("SurveyResponseSessionInstrument")
+  exclusions              Exclusion[]
   @@unique([id, instrumentVersionId])
+  @@unique([assessmentId, id])
   @@index([assessmentId, assessmentPerspectiveId, status])
   @@index([instrumentVersionId])
 }
@@ -447,4 +498,183 @@ model QuestionVersion {
   @@unique([instrumentVersionId, code])
   @@unique([instrumentVersionId, displayOrder])
   @@unique([instrumentVersionId, id])
+}
+
+model ClosureRecord {
+  id               String          @id @default(uuid()) @db.Char(36)
+  assessmentId     String          @db.Char(36)
+  revisionNumber   Int
+  checklistJson    Json?
+  actaJson         Json?
+  actaHash         String?         @db.Char(64)
+  authorizedById   String?         @db.Char(36)
+  authorizedAt     DateTime?       @db.DateTime(3)
+  createdAt        DateTime        @default(now()) @db.DateTime(3)
+  updatedAt        DateTime        @updatedAt @db.DateTime(3)
+  assessment       Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  authorizedBy     User?           @relation("ClosureAuthorizedBy", fields: [authorizedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  snapshot         FrozenSnapshot?
+  @@unique([assessmentId, revisionNumber])
+  @@index([authorizedById])
+}
+
+model QualityAssessment {
+  id              String           @id @default(uuid()) @db.Char(36)
+  assessmentId    String           @db.Char(36)
+  revisionNumber  Int
+  scopeKey        String           @db.VarChar(16)
+  perspectiveCode PerspectiveCode?
+  elementCode     ElementCode?
+  verdict         QualityVerdict
+  reservations    String?          @db.Text
+  reviewedById    String           @db.Char(36)
+  reviewedAt      DateTime         @db.DateTime(3)
+  assessment      Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  reviewedBy      User             @relation("QualityReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict)
+  @@unique([assessmentId, revisionNumber, scopeKey])
+  @@index([reviewedById])
+}
+
+model Exclusion {
+  id                String          @id @default(uuid()) @db.Char(36)
+  assessmentId      String          @db.Char(36)
+  revisionNumber    Int
+  responseSessionId String          @db.Char(36)
+  reasonCode        ExclusionReason
+  description       String          @db.Text
+  authorizedById    String          @db.Char(36)
+  authorizedAt      DateTime        @db.DateTime(3)
+  revokedById       String?         @db.Char(36)
+  revokedAt         DateTime?       @db.DateTime(3)
+  assessment        Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  responseSession   ResponseSession @relation(fields: [assessmentId, responseSessionId], references: [assessmentId, id], onDelete: Restrict, onUpdate: Restrict)
+  authorizedBy      User            @relation("ExclusionAuthorizedBy", fields: [authorizedById], references: [id], onDelete: Restrict)
+  revokedBy         User?           @relation("ExclusionRevokedBy", fields: [revokedById], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([assessmentId, revisionNumber, responseSessionId])
+  @@index([authorizedById])
+  @@index([revokedById])
+}
+
+model Incident {
+  id              String           @id @default(uuid()) @db.Char(36)
+  assessmentId    String           @db.Char(36)
+  revisionNumber  Int
+  occurredOn      DateTime         @db.Date
+  perspectiveCode PerspectiveCode?
+  description     String           @db.Text
+  impact          String           @db.Text
+  action          String           @db.Text
+  responsible     String           @db.VarChar(160)
+  createdById     String           @db.Char(36)
+  createdAt       DateTime         @default(now()) @db.DateTime(3)
+  assessment      Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  createdBy       User             @relation("IncidentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  @@index([assessmentId, revisionNumber])
+  @@index([createdById])
+}
+
+model FrozenSnapshot {
+  id              String          @id @default(uuid()) @db.Char(36)
+  assessmentId    String          @db.Char(36)
+  revisionNumber  Int
+  closureRecordId String          @unique @db.Char(36)
+  schemaVersion   Int
+  payloadJson     Json
+  sha256          String          @db.Char(64)
+  frozenById      String          @db.Char(36)
+  frozenAt        DateTime        @db.DateTime(3)
+  assessment      Assessment      @relation(fields: [assessmentId], references: [id], onDelete: Restrict)
+  closureRecord   ClosureRecord   @relation(fields: [closureRecordId], references: [id], onDelete: Restrict)
+  frozenBy        User            @relation("SnapshotFrozenBy", fields: [frozenById], references: [id], onDelete: Restrict)
+  runs            ProcessingRun[]
+  @@unique([assessmentId, revisionNumber])
+  @@index([frozenById])
+}
+
+model ProcessingRun {
+  id               String           @id @default(uuid()) @db.Char(36)
+  assessmentId     String           @db.Char(36)
+  snapshotId       String           @db.Char(36)
+  engineVersion    String           @db.VarChar(16)
+  status           ProcessingStatus
+  publishable      Boolean          @default(false)
+  inputHash        String?          @db.Char(64)
+  outputHash       String?          @db.Char(64)
+  outputJson       Json?
+  errorMessage     String?          @db.VarChar(500)
+  requestedById    String           @db.Char(36)
+  requestedAt      DateTime         @db.DateTime(3)
+  finishedAt       DateTime         @db.DateTime(3)
+  assessment       Assessment       @relation("AssessmentRuns", fields: [assessmentId], references: [id], onDelete: Restrict)
+  snapshot         FrozenSnapshot   @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  requestedBy      User             @relation("RunRequestedBy", fields: [requestedById], references: [id], onDelete: Restrict)
+  currentFor       Assessment?      @relation("AssessmentCurrentRun")
+  perspectiveElements PerspectiveElementResult[]
+  elements         ElementResult[]
+  perspectiveIndexes PerspectiveIndexResult[]
+  global           GlobalResult?
+  @@index([assessmentId, requestedAt])
+  @@index([snapshotId])
+  @@index([requestedById])
+}
+
+model PerspectiveElementResult {
+  runId           String          @db.Char(36)
+  perspectiveCode PerspectiveCode
+  elementCode     ElementCode
+  status          String          @db.VarChar(8)
+  reason          String?         @db.VarChar(32)
+  validPiCount    Int
+  rpExact         String?         @db.VarChar(200)
+  rpDecimal       Decimal?        @db.Decimal(30, 18)
+  run             ProcessingRun   @relation(fields: [runId], references: [id], onDelete: Restrict)
+  @@id([runId, perspectiveCode, elementCode])
+}
+
+model ElementResult {
+  runId                 String        @db.Char(36)
+  elementCode           ElementCode
+  riStatus              String        @db.VarChar(12)
+  riExact               String?       @db.VarChar(200)
+  riDecimal             Decimal?      @db.Decimal(30, 18)
+  validPerspectiveCount Int
+  perspectivesJson      Json
+  btStatus              String        @db.VarChar(16)
+  btExact               String?       @db.VarChar(200)
+  btDecimal             Decimal?      @db.Decimal(30, 18)
+  btDisplay             Int?
+  btClass               String?       @db.VarChar(24)
+  maxPerspectivesJson   Json
+  minPerspectivesJson   Json
+  run                   ProcessingRun @relation(fields: [runId], references: [id], onDelete: Restrict)
+  @@id([runId, elementCode])
+}
+
+model PerspectiveIndexResult {
+  runId             String          @db.Char(36)
+  perspectiveCode   PerspectiveCode
+  status            String          @db.VarChar(8)
+  validElementCount Int
+  valueExact        String?         @db.VarChar(200)
+  valueDecimal      Decimal?        @db.Decimal(30, 18)
+  displayScore      Int?
+  healthLevel       Int?
+  trafficLight      String?         @db.VarChar(16)
+  run               ProcessingRun   @relation(fields: [runId], references: [id], onDelete: Restrict)
+  @@id([runId, perspectiveCode])
+}
+
+model GlobalResult {
+  runId                  String        @id @db.Char(36)
+  status                 String        @db.VarChar(8)
+  reason                 String?       @db.VarChar(32)
+  valueExact             String?       @db.VarChar(200)
+  valueDecimal           Decimal?      @db.Decimal(30, 18)
+  displayScore           Int?
+  healthLevel            Int?
+  healthLabel            String?       @db.VarChar(40)
+  trafficLight           String?       @db.VarChar(16)
+  integratedElementCount Int
+  limitedElementsJson    Json
+  run                    ProcessingRun @relation(fields: [runId], references: [id], onDelete: Restrict)
 }

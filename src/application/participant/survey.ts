@@ -4,9 +4,14 @@ import { authParticipant, ParticipantError } from "./access";
 import { sessionSurvey } from "./instruments";
 import { surveyItems, validateAnswer, SurveyAnswerError, type SurveyAnswer } from "@/domain/survey/definition";
 import { submissionCheck } from "@/domain/survey/coverage";
+import { acceptsResponses } from "@/domain/closure/lifecycle";
 import { patchSurveySchema, submitSurveySchema } from "@/domain/survey/schemas";
 import { decryptOpenText, encryptOpenText } from "@/infrastructure/participant/crypto";
 const conflict = () => { throw new ParticipantError(409, "La sesión cambió. Vuelve a cargar el cuestionario."); };
+// Writes are accepted only while OPEN and before plannedClosesAt (PHASE5B_DECISIONS.md).
+function ensureAcceptsResponses(assessment: { status: string; plannedClosesAt: Date | null }) {
+  if (!acceptsResponses(assessment)) throw new ParticipantError(409, "La ventana de aplicación ya cerró.");
+}
 // Sessions of the retired Phase 3A technical survey have no instrument and can no longer be answered.
 async function surveyOf(client: Parameters<typeof sessionSurvey>[0], instrumentVersionId: string | null) {
   if (!instrumentVersionId) throw new ParticipantError(410, "Este cuestionario de prueba ya no está disponible.");
@@ -16,10 +21,11 @@ export async function acceptIntro(bearer: string | undefined) {
   const auth = await authParticipant(bearer);
   return db().$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM Invitation WHERE id = ${auth.binding.invitationId} FOR UPDATE`;
-    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true } } } });
+    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, plannedClosesAt: true } } } });
     const currentAuth = await tx.participantAuthSession.findUniqueOrThrow({ where: { id: auth.id } });
-    if (currentAuth.revokedAt || invitation.status !== "VERIFIED" || invitation.assessment.status !== "DRAFT" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
+    if (currentAuth.revokedAt || invitation.status !== "VERIFIED" || invitation.assessment.status !== "OPEN" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
     const response = await tx.responseSession.findUniqueOrThrow({ where: { id: auth.binding.responseSessionId } });
+    ensureAcceptsResponses(invitation.assessment);
     if (response.status !== "STARTED") conflict();
     const survey = await surveyOf(tx, response.instrumentVersionId);
     await tx.responseSession.updateMany({ where: { id: response.id, status: "STARTED", introAcceptedAt: null }, data: { introAcceptedAt: new Date(), introVersion: survey.introVersion } });
@@ -36,9 +42,9 @@ export async function readSurvey(bearer: string | undefined) {
   const auth = await authParticipant(bearer);
   return db().$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM Invitation WHERE id = ${auth.binding.invitationId} FOR UPDATE`;
-    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true } } } });
+    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, plannedClosesAt: true } } } });
     const currentAuth = await tx.participantAuthSession.findUniqueOrThrow({ where: { id: auth.id } });
-    if (currentAuth.revokedAt || !["VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.assessment.status !== "DRAFT" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
+    if (currentAuth.revokedAt || !["VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.assessment.status !== "OPEN" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
     const response = await tx.responseSession.findUniqueOrThrow({ where: { id: auth.binding.responseSessionId } });
     if (!response.introAcceptedAt) throw new ParticipantError(403, "Introducción requerida.");
     if (response.status === "SUBMITTED") return { submitted: true as const };
@@ -54,10 +60,11 @@ export async function saveSurvey(bearer: string | undefined, input: unknown) {
   const auth = await authParticipant(bearer);
   return db().$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM Invitation WHERE id = ${auth.binding.invitationId} FOR UPDATE`;
-    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, organizationId: true } } } });
+    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, organizationId: true, plannedClosesAt: true } } } });
     const currentAuth = await tx.participantAuthSession.findUniqueOrThrow({ where: { id: auth.id } });
-    if (currentAuth.revokedAt || invitation.status !== "VERIFIED" || invitation.assessment.status !== "DRAFT" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
+    if (currentAuth.revokedAt || invitation.status !== "VERIFIED" || invitation.assessment.status !== "OPEN" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
     const response = await tx.responseSession.findUniqueOrThrow({ where: { id: auth.binding.responseSessionId } });
+    ensureAcceptsResponses(invitation.assessment);
     if (response.status !== "STARTED" || !response.introAcceptedAt || response.revision !== data.expectedRevision) conflict();
     const survey = await surveyOf(tx, response.instrumentVersionId);
     const items = new Map(surveyItems(survey.definition).map(item => [item.key, item]));
@@ -78,11 +85,12 @@ export async function submitSurvey(bearer: string | undefined, input: unknown) {
   const auth = await authParticipant(bearer);
   return db().$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM Invitation WHERE id = ${auth.binding.invitationId} FOR UPDATE`;
-    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, organizationId: true } } } });
+    const invitation = await tx.invitation.findUniqueOrThrow({ where: { id: auth.binding.invitationId }, include: { assessment: { select: { status: true, organizationId: true, plannedClosesAt: true } } } });
     const currentAuth = await tx.participantAuthSession.findUniqueOrThrow({ where: { id: auth.id } });
-    if (currentAuth.revokedAt || !["VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.assessment.status !== "DRAFT" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
+    if (currentAuth.revokedAt || !["VERIFIED", "COMPLETED"].includes(invitation.status) || invitation.assessment.status !== "OPEN" || invitation.expiresAt <= new Date()) throw new ParticipantError(401, "Acceso no disponible.");
     const response = await tx.responseSession.findUniqueOrThrow({ where: { id: auth.binding.responseSessionId } });
     if (response.status === "SUBMITTED") return { submitted: true };
+    ensureAcceptsResponses(invitation.assessment);
     if (response.status !== "STARTED" || !response.introAcceptedAt || response.revision !== data.expectedRevision) conflict();
     const survey = await surveyOf(tx, response.instrumentVersionId);
     const rows = await tx.surveyResponse.findMany({ where: { responseSessionId: response.id }, select: { itemKey: true, answerState: true } });

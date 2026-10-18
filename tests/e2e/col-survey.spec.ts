@@ -32,12 +32,12 @@ test.describe.serial("Phase 3B COL questionnaire", () => {
     await page.getByLabel("Contraseña", { exact: true }).fill(seedEnvironment().SEED_USER_PASSWORD);
     await page.getByRole("button", { name: "Iniciar sesión" }).click();
     await expect(page).toHaveURL(/\/diagnosticos$/);
-    await page.goto(`/diagnosticos/${demoIds.assessmentA}?tab=participantes`);
+    await page.goto(`/diagnosticos/${demoIds.assessmentOpenA}?tab=participantes`);
     await page.getByLabel("Correo de prueba").fill(`participant-${tag}@example.test`);
     await page.getByLabel("Perspectiva").selectOption("COL");
     await page.getByRole("button", { name: "Crear invitación" }).click();
     await expect(page.getByRole("row").filter({ hasText: tag })).toContainText("SENT");
-    invitationId = (await db().invitation.findFirstOrThrow({ where: { assessmentId: demoIds.assessmentA }, orderBy: { createdAt: "desc" } })).id;
+    invitationId = (await db().invitation.findFirstOrThrow({ where: { assessmentId: demoIds.assessmentOpenA }, orderBy: { createdAt: "desc" } })).id;
     link = lastMail("link");
     await context.clearCookies();
   });

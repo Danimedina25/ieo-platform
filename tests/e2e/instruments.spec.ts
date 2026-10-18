@@ -4,17 +4,22 @@ import { db } from "@/infrastructure/persistence/db";
 import { demoIds, seedEnvironment } from "../../prisma/seed-data";
 import { answerMinimum, catalogFor, likertQuestions, openSection } from "./survey-helpers";
 const tag = `p4${Date.now().toString(36)}`;
-let page: Page, context: BrowserContext;
+let page: Page, context: BrowserContext, adminCookies: Awaited<ReturnType<BrowserContext["cookies"]>> = [];
 function lastMail(kind: "link" | "otp", recipient: string) { const rows = readFileSync(process.env.E2E_MAILBOX_PATH!, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line) as { kind: string; value: string; to: string }); return rows.filter(row => row.kind === kind && row.to.includes(recipient)).at(-1)!.value; }
 async function invite(perspectiveCode: string) {
   const email = `${perspectiveCode.toLowerCase()}-${tag}@example.test`;
   await context.clearCookies();
-  await page.goto("/login");
-  await page.getByLabel("Correo", { exact: true }).fill("consultor@ieo.local");
-  await page.getByLabel("Contraseña", { exact: true }).fill(seedEnvironment().SEED_USER_PASSWORD);
-  await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await expect(page).toHaveURL(/\/diagnosticos$/);
-  await page.goto(`/diagnosticos/${demoIds.assessmentA}?tab=participantes`);
+  // Log in once and reuse the cookie: the login limiter allows 10 attempts per account every 15 minutes.
+  if (adminCookies.length) await context.addCookies(adminCookies);
+  else {
+    await page.goto("/login");
+    await page.getByLabel("Correo", { exact: true }).fill("consultor@ieo.local");
+    await page.getByLabel("Contraseña", { exact: true }).fill(seedEnvironment().SEED_USER_PASSWORD);
+    await page.getByRole("button", { name: "Iniciar sesión" }).click();
+    await expect(page).toHaveURL(/\/diagnosticos$/);
+    adminCookies = await context.cookies();
+  }
+  await page.goto(`/diagnosticos/${demoIds.assessmentOpenA}?tab=participantes`);
   await page.getByLabel("Correo de prueba").fill(email);
   await page.getByLabel("Perspectiva").selectOption(perspectiveCode);
   await page.getByRole("button", { name: "Crear invitación" }).click();

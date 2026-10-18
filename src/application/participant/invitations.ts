@@ -8,15 +8,16 @@ import { authConfig } from "@/lib/config";
 import { normalizeEmail } from "@/domain/auth";
 
 const createSchema = z.object({ email: z.email().max(254), perspectiveCode: z.enum(["DIR", "ESP", "LID", "COL", "CLI"]), expiresAt: z.iso.datetime({ offset: true }) }).strict();
-async function consultant(userId: string, assessmentId: string) {
+// Invitations are listed in any state, but created, reissued or cancelled only while DRAFT or OPEN.
+async function consultant(userId: string, assessmentId: string, writable = true) {
   if (!z.uuid().safeParse(assessmentId).success) throw new AccessDeniedError();
-  const assessment = await db().assessment.findFirst({ where: { id: assessmentId, status: "DRAFT", organization: { status: "ACTIVE", memberships: { some: { userId, role: "IEO_CONSULTANT", active: true } } } }, select: { id: true, organizationId: true } });
+  const assessment = await db().assessment.findFirst({ where: { id: assessmentId, ...(writable ? { status: { in: ["DRAFT", "OPEN"] } } : {}), organization: { status: "ACTIVE", memberships: { some: { userId, role: "IEO_CONSULTANT", active: true } } } }, select: { id: true, organizationId: true, status: true } });
   if (!assessment) throw new AccessDeniedError();
   return assessment;
 }
 export async function listInvitations(adminToken: string | undefined, assessmentId: string) {
   const user = await requireAuthenticatedUser(adminToken);
-  await consultant(user.id, assessmentId);
+  await consultant(user.id, assessmentId, false);
   const rows = await db().invitation.findMany({ where: { assessmentId, isTest: true }, select: { id: true, emailCiphertext: true, status: true, sentAt: true, verifiedAt: true, completedAt: true, expiresAt: true, perspective: { select: { perspectiveCode: true } } }, orderBy: { createdAt: "desc" } });
   return rows.map(row => ({ id: row.id, email: decryptEmail(row.emailCiphertext), perspectiveCode: row.perspective.perspectiveCode, status: row.status, sentAt: row.sentAt?.toISOString() ?? null, verifiedAt: row.verifiedAt?.toISOString() ?? null, completedAt: row.completedAt?.toISOString() ?? null, expiresAt: row.expiresAt.toISOString() }));
 }
@@ -41,6 +42,8 @@ export async function createInvitation(adminToken: string | undefined, assessmen
     await tx.auditLog.create({ data: { organizationId: assessment.organizationId, assessmentId, actorUserId: user.id, action: "TEST_INVITATION_CREATED", entityType: "Invitation", entityId: row.id, metadataJson: { perspectiveCode: data.perspectiveCode, isTest: true } } });
     return row;
   });
+  // In DRAFT the invitation waits as CREATED; opening the assessment sends it with a fresh token.
+  if (assessment.status !== "OPEN") return { id: invitation.id, status: "CREATED" };
   await deliver(invitation.id, email, token);
   return { id: invitation.id, status: "SENT" };
 }
@@ -64,6 +67,21 @@ export async function mutateInvitation(adminToken: string | undefined, assessmen
     await tx.auditLog.create({ data: { organizationId: assessment.organizationId, assessmentId, actorUserId: user.id, action: action === "reissue" ? "TEST_INVITATION_REISSUED" : "TEST_INVITATION_CANCELLED", entityType: "Invitation", entityId: invitationId, metadataJson: { isTest: true } } });
     return updated;
   });
-  if (token) await deliver(invitationId, decryptEmail(row.emailCiphertext), token);
-  return { id: invitationId, status: action === "cancel" ? "CANCELLED" : "SENT" };
+  if (action === "cancel") return { id: invitationId, status: "CANCELLED" };
+  if (assessment.status !== "OPEN") return { id: invitationId, status: "CREATED" };
+  await deliver(invitationId, decryptEmail(row.emailCiphertext), token!);
+  return { id: invitationId, status: "SENT" };
+}
+/** Sends every pending (CREATED, unexpired) invitation of an assessment that has just been opened, rotating its token. */
+export async function sendPendingInvitations(assessmentId: string) {
+  const pending = await db().invitation.findMany({ where: { assessmentId, status: "CREATED", isTest: true, expiresAt: { gt: new Date() } }, select: { id: true, emailCiphertext: true } });
+  let sent = 0;
+  for (const invitation of pending) {
+    const token = randomBearer();
+    const updated = await db().invitation.updateMany({ where: { id: invitation.id, status: "CREATED" }, data: { tokenHash: hashBearer(token), tokenGeneration: { increment: 1 } } });
+    if (!updated.count) continue;
+    try { await deliver(invitation.id, decryptEmail(invitation.emailCiphertext), token); sent++; }
+    catch { console.error("PENDING_INVITATION_DELIVERY_FAILED_INTERNAL"); }
+  }
+  return { sent, pending: pending.length };
 }

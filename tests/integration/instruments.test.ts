@@ -21,7 +21,7 @@ const assessmentIds: string[] = [];
 const perspectives = ["DIR", "ESP", "LID", "COL", "CLI"] as const;
 let admin = "";
 function mail(kind: "link" | "otp") { return readFileSync(mailbox, "utf8").trim().split("\n").map(line => JSON.parse(line) as { kind: string; value: string }).filter(row => row.kind === kind).at(-1)!.value; }
-async function participant(perspectiveCode: (typeof perspectives)[number], assessmentId = demoIds.assessmentA) {
+async function participant(perspectiveCode: (typeof perspectives)[number], assessmentId = demoIds.assessmentOpenA) {
   const row = await createInvitation(admin, assessmentId, { email: `${perspectiveCode.toLowerCase()}-${randomUUID().slice(0, 6)}-${tag}@example.test`, perspectiveCode, expiresAt: new Date(Date.now() + 86400_000).toISOString() });
   invitationIds.push(row.id);
   const context = (await startAccess(mail("link").split("/").at(-1)!)).bearer;
@@ -111,7 +111,7 @@ it("P4-INT-06 CLI: 2 of 4 in Element III blocks; 3 of 4 passes; general open que
 it("P4-INT-07 an assessment without package cannot start a questionnaire", async () => {
   const { id } = await createAssessment(admin, { organization: { kind: "existing", id: demoIds.organizationA }, name: `Sin paquete ${tag}`, period: "2026", objective: null });
   assessmentIds.push(id);
-  await db().assessment.update({ where: { id }, data: { methodologyPackageId: null } });
+  await db().assessment.update({ where: { id }, data: { methodologyPackageId: null, status: "OPEN", openedAt: new Date() } });
   const row = await createInvitation(admin, id, { email: `nopkg-${tag}@example.test`, perspectiveCode: "COL", expiresAt: new Date(Date.now() + 86400_000).toISOString() });
   invitationIds.push(row.id);
   const context = (await startAccess(mail("link").split("/").at(-1)!)).bearer;
