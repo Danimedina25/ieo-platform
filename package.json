@@ -21,7 +21,8 @@
     "test": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
-    "test:db:prepare": "tsx scripts/prepare-test-db.ts"
+    "test:db:prepare": "tsx scripts/prepare-test-db.ts",
+    "test:acceptance": "tsx scripts/s12-acceptance.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",

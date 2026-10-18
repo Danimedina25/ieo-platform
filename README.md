@@ -124,6 +124,7 @@ npm run test:db:prepare
 npm run build
 npx playwright install chromium
 npm run test:e2e
+npm run test:acceptance
 ```
 
 Integración y E2E requieren MySQL real. `test:db:prepare` migra, verifica el nombre y **borra sólo los datos de la base dedicada TEST_DATABASE_URL** antes de aplicar seed; exige sufijo `_test` y separación de DATABASE_URL. Reaplicarlo antes de E2E restaura fixtures después de integración. No apuntar TEST_DATABASE_URL a datos que se deban conservar. Ejecutar suites DB secuencialmente. Playwright inicia build de producción en localhost:3100 con DB de pruebas; no reutiliza servidor de desarrollo. La cookie Secure se prueba en localhost como contexto permitido por Chromium. Traces están desactivadas para evitar capturar credenciales de login.
@@ -139,7 +140,7 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 
 ## Current implementation status
 
-**Phases 1, 2, 3A, 3B y 4 implementadas.** Se puede configurar un borrador, gestionar segmentos y recorrer invitación → OTP → respuestas → reanudación → envío con los cinco cuestionarios oficiales v1.0 (329 reactivos + 28 abiertas), cada perspectiva con el suyo y envío con ≥ 60 % por Elemento. **Sólo datos ficticios** mientras GAP-012 siga abierto. No hay cómputo IEO®, cierre ni resultados. Evidencia y límites: [PHASE4_VALIDATION.md](docs/PHASE4_VALIDATION.md), [PHASE3B_VALIDATION.md](docs/PHASE3B_VALIDATION.md), [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-003/004/005/006/014 tienen resolución registrada; el resto sigue abierto ([METHODOLOGY_GAPS.md](docs/METHODOLOGY_GAPS.md)).
+**Phases 1, 2, 3A, 3B, 4 y 5A implementadas.** Se puede configurar un borrador, gestionar segmentos y recorrer invitación → OTP → respuestas → reanudación → envío con los cinco cuestionarios oficiales v1.0 (329 reactivos + 28 abiertas), cada perspectiva con el suyo y envío con ≥ 60 % por Elemento. **Sólo datos ficticios** mientras GAP-012 siga abierto. El motor matemático (`src/domain/ieo-engine`) pasa los 23 casos oficiales de S12 ([registro](docs/PHASE5A_ACCEPTANCE.md)), pero todavía no se ejecuta sobre diagnósticos: no hay cierre, congelamiento ni pantallas de resultados (Phase 5B y 6). Evidencia y límites: [PHASE4_VALIDATION.md](docs/PHASE4_VALIDATION.md), [PHASE3B_VALIDATION.md](docs/PHASE3B_VALIDATION.md), [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-003/004/005/006/014 tienen resolución registrada; el resto sigue abierto ([METHODOLOGY_GAPS.md](docs/METHODOLOGY_GAPS.md)).
 
 ## Documentación
 
@@ -148,6 +149,7 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 - [Decisiones de Phase 3A](docs/PHASE3A_DECISIONS.md) y [validación](docs/PHASE3A_VALIDATION.md)
 - [Decisiones de Phase 3B](docs/PHASE3B_DECISIONS.md) y [validación](docs/PHASE3B_VALIDATION.md)
 - [Decisiones de Phase 4](docs/PHASE4_DECISIONS.md) y [validación](docs/PHASE4_VALIDATION.md)
+- [Decisiones de Phase 5](docs/PHASE5_DECISIONS.md) y [aceptación S12 de 5A](docs/PHASE5A_ACCEPTANCE.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)

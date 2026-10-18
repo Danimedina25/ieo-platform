@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Canonical } from "@/domain/canonical";
 
 import type { ElementCode } from "./elements";
 export { elementCodes, type ElementCode } from "./elements";
@@ -41,10 +41,5 @@ export type InstrumentCatalog = Readonly<{
   thanks: string;
 }>;
 
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value && typeof value === "object") return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`).join(",")}}`;
-  return JSON.stringify(value);
-}
 /** SHA-256 of the canonical JSON content; identifies an immutable instrument version. */
-export function catalogContentHash(catalog: InstrumentCatalog) { return createHash("sha256").update(canonical(catalog)).digest("hex"); }
+export function catalogContentHash(catalog: InstrumentCatalog) { return sha256Canonical(catalog); }

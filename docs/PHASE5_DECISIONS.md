@@ -60,3 +60,12 @@ Cada salida registra la versión de estas políticas para que un cambio de Marco
 ## Fuera de alcance de 5A
 
 Cierre, acta, dictamen, exclusiones, snapshot, ejecución sobre datos guardados, tablas de resultados, pantallas, patrones de triangulación y exportaciones.
+
+## Cierre de implementación de 5A
+
+- Módulo `src/domain/ieo-engine`: `rational.ts` (fracciones exactas con BigInt y redondeo final con .5 hacia abajo), `classify.ts` (salud, semáforo, clase BT), `stages.ts` (etapas puras), `run.ts` (orquestador con linaje, versión de políticas y hashes) y `from-catalog.ts` (vista del motor de un instrumento; las abiertas nunca entran).
+- `src/infrastructure/acceptance/s12.ts` lee la matriz S12 y ejecuta sus casos; `npm run test:acceptance` escribe [PHASE5A_ACCEPTANCE.md](PHASE5A_ACCEPTANCE.md). Resultado: 23 de 23 casos críticos y 13 de 13 fronteras PASS.
+- Pruebas: 117 unitarias (incluye S12 y 13 escenarios completos sobre los cinco instrumentos reales: inversos de COL, N/A, omisiones, todo N/A, NP frente a ND, dictamen C, Global LIMITED y ND, diagnóstico de una sola perspectiva, empates, determinismo y entradas inválidas); integración y E2E de fases previas sin cambios (67 y 47 PASS).
+- El hash de entrada se calcula sobre un orden normalizado: los mismos datos en otro orden producen el mismo resultado y el mismo hash.
+- Para un diagnóstico de una sola perspectiva el Global queda ND con motivo `NO_INTEGRATED_ELEMENT` y se reporta el IEO de esa perspectiva.
+- Pendiente para 5B: cierre, acta, dictamen, exclusiones, snapshot, ejecución sobre datos guardados y tablas de resultados.
