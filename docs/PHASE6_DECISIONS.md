@@ -1,6 +1,6 @@
 # Phase 6 — decisiones previas al código
 
-Estado: **aprobada el 2026-10-18**. Phase 5B está terminada ([PHASE5B_VALIDATION.md](PHASE5B_VALIDATION.md)). Phase 6 muestra los resultados de un diagnóstico procesado y da al consultor las herramientas para interpretarlos: matriz de triangulación, patrones, evidencia cualitativa y decisión de qué se puede reportar. Sigue siendo con datos de prueba (GAP-012).
+Estado: **aprobada el 2026-10-18 e implementada**; evidencia en [PHASE6_VALIDATION.md](PHASE6_VALIDATION.md). Phase 5B está terminada ([PHASE5B_VALIDATION.md](PHASE5B_VALIDATION.md)). Phase 6 muestra los resultados de un diagnóstico procesado y da al consultor las herramientas para interpretarlos: matriz de triangulación, patrones, evidencia cualitativa y decisión de qué se puede reportar. Sigue siendo con datos de prueba (GAP-012).
 
 ## Quién ve resultados
 
@@ -45,3 +45,12 @@ Reporte diagnóstico automático (falta la Plantilla Oficial, GAP-002), exportac
 - Integración MySQL: sólo el consultor de la organización lee resultados y abiertas; el coordinador y otra organización no; las abiertas no traen identificadores ni sesiones excluidas o en borrador; una respuesta redactada conserva el original; patrones y divulgación ligados al run; ocultar una perspectiva no cambia RI, BT ni Global; un run nuevo exige revisar la divulgación otra vez.
 - Playwright: el consultor recorre resultados (Global junto a la matriz), registra un patrón, redacta una cita y marca una perspectiva como no reportable, en escritorio y móvil.
 - Las suites anteriores siguen pasando.
+
+## Cierre de implementación
+
+- `src/domain/results` (formato de presentación, advertencias de divulgación, validaciones), `src/application/results.ts` y la pestaña **Resultados** (`results-workspace.tsx`) con sus rutas en `/api/assessments/[id]/results/…`.
+- Los resultados se leen de las tablas tipadas del run; el resultado exacto del motor (con las PI) nunca sale del servidor.
+- Las respuestas abiertas se toman de las sesiones de la copia congelada, se ordenan con un hash del run y de la respuesta (orden estable que no sigue al de las sesiones) y sólo llevan el identificador de la respuesta, que no enlaza con la sesión ni con la persona. La versión redactada se guarda cifrada.
+- Patrones, revisiones cualitativas y decisiones de divulgación guardan historial: cuenta el último registro de cada run.
+- La advertencia «deducible» aparece cuando una perspectiva oculta participa en un RI integrado: con las demás visibles, su RP se recupera del RI (y de la BT si son dos).
+- Las pruebas usan un helper que inserta participantes sintéticos directamente (`tests/fixtures/participants.ts`) y la prueba E2E usa al consultor de la organización B para no compartir el límite de inicios de sesión.

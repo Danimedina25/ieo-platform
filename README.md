@@ -68,7 +68,7 @@ Compose contiene únicamente `mysql:8.4.10`, puerto local 3307 y volumen persist
 
 Alternativa: MySQL 8 local ya instalado, con tres bases dedicadas y permisos equivalentes. Nunca ejecutar pruebas sobre una DB cliente. En esta máquina se verificó MySQL 8.4.10 oficial aislado en /tmp, ya que Docker no está instalado; Compose no se ejecutó aquí. La instancia de validación y el `.env` temporal no sustituyen tu configuración de desarrollo.
 
-Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Treinta tablas de aplicación: ocho de Phase 1/2, seis de Phase 3A, cuatro de catálogo de Phase 3B (InstrumentVersion, InstrumentSection, QuestionVersion, InstrumentScaleOption) dos de paquete de Phase 4 (MethodologyPackage, PackageInstrument) y diez de cierre y resultados de Phase 5B. `_prisma_migrations` pertenece a Prisma. Phase 3A añade CHECK de `isTest=true` y forma de respuesta; Phase 3B, CHECK de forma de pregunta y FKs compuestas que impiden responder preguntas de otro instrumento.
+Prisma usa FKs reales, UUID CHAR(36), índices, restricciones UNIQUE y transacciones. Treinta y tres tablas de aplicación: ocho de Phase 1/2, seis de Phase 3A, cuatro de catálogo de Phase 3B (InstrumentVersion, InstrumentSection, QuestionVersion, InstrumentScaleOption) dos de paquete de Phase 4 (MethodologyPackage, PackageInstrument) diez de cierre y resultados de Phase 5B y tres de revisión de resultados de Phase 6. `_prisma_migrations` pertenece a Prisma. Phase 3A añade CHECK de `isTest=true` y forma de respuesta; Phase 3B, CHECK de forma de pregunta y FKs compuestas que impiden responder preguntas de otro instrumento.
 
 ## Prisma migrations
 
@@ -140,7 +140,7 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 
 ## Current implementation status
 
-**Phases 1, 2, 3A, 3B, 4, 5A y 5B implementadas.** Se puede configurar un borrador, gestionar segmentos y recorrer invitación → OTP → respuestas → reanudación → envío con los cinco cuestionarios oficiales v1.0 (329 reactivos + 28 abiertas), cada perspectiva con el suyo y envío con ≥ 60 % por Elemento. **Sólo datos ficticios** mientras GAP-012 siga abierto. El motor matemático (`src/domain/ieo-engine`) pasa los 23 casos oficiales de S12 ([registro](docs/PHASE5A_ACCEPTANCE.md)), y desde la pestaña **Cierre** el consultor abre, cierra, documenta el cierre (exclusiones, incidencias, dictamen, checklist y acta), congela y procesa cada diagnóstico. Las pantallas de resultados son Phase 6. Evidencia y límites: [PHASE4_VALIDATION.md](docs/PHASE4_VALIDATION.md), [PHASE3B_VALIDATION.md](docs/PHASE3B_VALIDATION.md), [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-003/004/005/006/014 tienen resolución registrada; el resto sigue abierto ([METHODOLOGY_GAPS.md](docs/METHODOLOGY_GAPS.md)).
+**Phases 1 a 6 implementadas.** Se puede configurar un borrador, gestionar segmentos y recorrer invitación → OTP → respuestas → reanudación → envío con los cinco cuestionarios oficiales v1.0 (329 reactivos + 28 abiertas), cada perspectiva con el suyo y envío con ≥ 60 % por Elemento. **Sólo datos ficticios** mientras GAP-012 siga abierto. El motor matemático (`src/domain/ieo-engine`) pasa los 23 casos oficiales de S12 ([registro](docs/PHASE5A_ACCEPTANCE.md)), y desde la pestaña **Cierre** el consultor abre, cierra, documenta el cierre (exclusiones, incidencias, dictamen, checklist y acta), congela y procesa cada diagnóstico. En **Resultados** ve el Índice Global junto a la matriz de triangulación, registra patrones, revisa la evidencia cualitativa y decide qué perspectivas son reportables. Evidencia y límites: [PHASE4_VALIDATION.md](docs/PHASE4_VALIDATION.md), [PHASE3B_VALIDATION.md](docs/PHASE3B_VALIDATION.md), [PHASE3A_VALIDATION.md](docs/PHASE3A_VALIDATION.md), [PHASE2_VALIDATION.md](docs/PHASE2_VALIDATION.md) y [PHASE1_VALIDATION.md](docs/PHASE1_VALIDATION.md). GAP-003/004/005/006/014 tienen resolución registrada; el resto sigue abierto ([METHODOLOGY_GAPS.md](docs/METHODOLOGY_GAPS.md)).
 
 ## Documentación
 
@@ -151,6 +151,7 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 - [Decisiones de Phase 4](docs/PHASE4_DECISIONS.md) y [validación](docs/PHASE4_VALIDATION.md)
 - [Decisiones de Phase 5](docs/PHASE5_DECISIONS.md) y [aceptación S12 de 5A](docs/PHASE5A_ACCEPTANCE.md)
 - [Decisiones de Phase 5B](docs/PHASE5B_DECISIONS.md) y [validación](docs/PHASE5B_VALIDATION.md)
+- [Decisiones de Phase 6](docs/PHASE6_DECISIONS.md) y [validación](docs/PHASE6_VALIDATION.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)

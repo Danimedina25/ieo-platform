@@ -14,6 +14,9 @@ async function main() {
     if (actual[0]?.name !== expected) throw new Error("La conexión no apunta a la base de pruebas esperada.");
     await db().$transaction(async tx => {
       await tx.assessment.updateMany({ data: { currentRunId: null } });
+      await tx.triangulationPattern.deleteMany();
+      await tx.qualitativeReview.deleteMany();
+      await tx.disclosureReview.deleteMany();
       await tx.globalResult.deleteMany();
       await tx.perspectiveIndexResult.deleteMany();
       await tx.elementResult.deleteMany();
