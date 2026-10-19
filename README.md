@@ -154,6 +154,7 @@ Para `start` en un dominio real usa HTTPS y APP_ORIGIN correcto; no sustituir Se
 - [Decisiones de Phase 5B](docs/PHASE5B_DECISIONS.md) y [validación](docs/PHASE5B_VALIDATION.md)
 - [Decisiones de Phase 6](docs/PHASE6_DECISIONS.md) y [validación](docs/PHASE6_VALIDATION.md)
 - [Decisiones de Phase 7](docs/PHASE7_DECISIONS.md), [validación](docs/PHASE7_VALIDATION.md) y [operación: respaldo y restauración](docs/OPERATIONS.md)
+- Preparación del piloto: [qué falta](docs/PILOT_READINESS.md), [prueba de aceptación con usuarios](docs/UAT_SCRIPT.md) y [borrador de aviso de privacidad](docs/PRIVACY_NOTICE_DRAFT.md)
 - [Infraestructura pendiente del cliente](docs/INFRASTRUCTURE_REQUIREMENTS.md)
 - [Arquitectura, fuentes y cobertura objetivo](docs/ARCHITECTURE.md)
 - [Modelo completo objetivo](docs/DATA_MODEL.md)
