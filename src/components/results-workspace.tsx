@@ -107,7 +107,7 @@ function PatternRow({ element, current, busy, save }: { element: Element; curren
     <div className="text-sm"><p className="font-semibold">{ELEMENT_NAMES[element]}</p><p className="text-slate-600">{current ? `${PATTERN_LABELS[current.patternCode]} — ${current.justification} (${current.recordedBy}${current.versions > 1 ? `, ${current.versions} versiones` : ""})` : "Sin patrón registrado"}</p></div>
     <label className="text-sm">Patrón<select aria-label={`Patrón ${ELEMENT_NAMES[element]}`} value={patternCode} onChange={event => setPattern(event.target.value as Pattern)} className={field}>{Object.entries(PATTERN_LABELS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
     <label className="text-sm">Justificación<input aria-label={`Justificación ${ELEMENT_NAMES[element]}`} required value={justification} onChange={event => setJustification(event.target.value)} className={field} /></label>
-    <button disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold" aria-label={`Registrar patrón ${ELEMENT_NAMES[element]}`}>Registrar</button>
+    <button disabled={busy || (!!current && current.patternCode === patternCode && !justification.trim())} className="min-h-11 self-end rounded border px-4 font-semibold disabled:opacity-60" aria-label={`Registrar patrón ${ELEMENT_NAMES[element]}`}>{current && current.patternCode === patternCode && !justification.trim() ? "Registrado ✓" : current ? "Registrar cambio" : "Registrar"}</button>
   </form>;
 }
 
@@ -119,7 +119,7 @@ function DisclosureRow({ perspective, current, warnings, busy, save }: { perspec
     <div className="mt-2 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto]">
       {(["REPORTABLE", "NOT_REPORTABLE"] as const).map(option => <label key={option} className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name={`disclosure-${perspective}`} checked={decision === option} onChange={() => setDecision(option)} />{option === "REPORTABLE" ? "Reportable" : "No reportable"}</label>)}
       <input aria-label={`Motivo ${PERSPECTIVE_NAMES[perspective]}`} required placeholder="Motivo" value={reason} onChange={event => setReason(event.target.value)} className="min-h-11 rounded border px-3" />
-      <button disabled={busy} className="min-h-11 rounded border px-4 font-semibold" aria-label={`Guardar divulgación ${PERSPECTIVE_NAMES[perspective]}`}>Guardar</button>
+      <button disabled={busy || (!!current && current.decision === decision && !reason.trim())} className="min-h-11 rounded border px-4 font-semibold disabled:opacity-60" aria-label={`Guardar divulgación ${PERSPECTIVE_NAMES[perspective]}`}>{current && current.decision === decision && !reason.trim() ? "Revisado ✓" : current ? "Guardar cambio" : "Guardar"}</button>
     </div>
   </form>;
 }
@@ -154,7 +154,7 @@ function QualitativeItem({ item, busy, save }: { item: Qualitative; busy: boolea
     <form className="mt-2 grid gap-2 sm:grid-cols-[14rem_1fr_auto]" onSubmit={async event => { event.preventDefault(); await save({ status, redactedText: status === "REDACTED" ? redacted : null }); }}>
       <label>Estado<select aria-label={`Estado de la respuesta ${item.questionCode}`} value={status} onChange={event => setStatus(event.target.value as QualitativeStatus)} className={field}>{Object.entries(QUALITATIVE_LABELS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
       {status === "REDACTED" ? <label>Texto redactado<input aria-label={`Texto redactado ${item.questionCode}`} required value={redacted} onChange={event => setRedacted(event.target.value)} className={field} /></label> : <span />}
-      <button disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold">Guardar</button>
+      <button disabled={busy || (status === item.status && (status !== "REDACTED" || redacted === item.redactedText))} className="min-h-11 self-end rounded border px-4 font-semibold disabled:opacity-60">{status === item.status && (status !== "REDACTED" || redacted === item.redactedText) ? (item.status === "REVIEW_PENDING" ? "Sin cambios" : "Guardado ✓") : "Guardar"}</button>
     </form>
   </li>;
 }

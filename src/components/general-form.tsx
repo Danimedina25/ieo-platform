@@ -13,7 +13,7 @@ const toUtc = (value: string) => value ? `${value}:00.000Z` : null;
 export function GeneralForm({ id, general, consultants, coordinators, canEdit }: { id: string; general: General; consultants: Person[]; coordinators: Person[]; canEdit: boolean }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
-  const { register, handleSubmit, setError, clearErrors, formState: { isSubmitting, errors } } = useForm<Fields>({ defaultValues: {
+  const { register, handleSubmit, setError, clearErrors, reset, formState: { isSubmitting, isDirty, errors } } = useForm<Fields>({ defaultValues: {
     name: general.name, period: general.period, objective: general.objective ?? "", timezone: general.timezone ?? "",
     plannedOpensAt: toInputUtc(general.plannedOpensAt), plannedClosesAt: toInputUtc(general.plannedClosesAt),
     scopeUnitsText: general.scopeUnitsText ?? "", sponsorName: general.sponsorName ?? "",
@@ -31,7 +31,7 @@ export function GeneralForm({ id, general, consultants, coordinators, canEdit }:
         scopeUnitsText: values.scopeUnitsText || null, sponsorName: values.sponsorName || null,
         consultantUserId: values.consultantUserId || null, coordinatorUserId: values.coordinatorUserId || null,
         methodologyNotes: values.methodologyNotes || null,
-      }); setMessage("Guardado"); router.refresh();
+      }); reset(values); setMessage("Guardado"); router.refresh();
     } catch (issue) {
       if (issue instanceof WorkspaceRequestError) {
         for (const field of issue.fields) if (field in values) setError(field as keyof Fields, { message: "Revisa este campo." });
@@ -51,6 +51,6 @@ export function GeneralForm({ id, general, consultants, coordinators, canEdit }:
     <div><label htmlFor="general-sponsor" className={fieldLabel}>Sponsor</label><input id="general-sponsor" maxLength={160} {...register("sponsorName")} className={inputClass} /></div>
     <div className="grid gap-6 sm:grid-cols-2"><div><label htmlFor="general-consultant" className={fieldLabel}>Consultor responsable</label><select id="general-consultant" {...register("consultantUserId")} className={inputClass}><option value="">Sin asignar</option>{consultants.map(p => <option key={p.id} value={p.id}>{p.name ?? p.email}</option>)}</select></div><div><label htmlFor="general-coordinator" className={fieldLabel}>Coordinador</label><select id="general-coordinator" {...register("coordinatorUserId")} className={inputClass}><option value="">Sin asignar</option>{coordinators.map(p => <option key={p.id} value={p.id}>{p.name ?? p.email}</option>)}</select></div></div>
     <div><label htmlFor="general-notes" className={fieldLabel}>Observaciones metodológicas</label><textarea id="general-notes" rows={3} maxLength={4000} {...register("methodologyNotes")} className="w-full rounded-md border border-slate-400 p-3" /></div>
-    <div className="flex items-center justify-end gap-4"><span role="status" className={message === "Guardado" ? "text-sm text-green-800" : "text-sm text-red-800"}>{message}</span><button disabled={isSubmitting} className="min-h-11 rounded-md bg-slate-900 px-5 font-semibold text-white disabled:opacity-60">{isSubmitting ? "Guardando…" : "Guardar cambios"}</button></div>
+    <div className="flex items-center justify-end gap-4"><span role="status" className={message === "Guardado" ? "text-sm text-green-800" : "text-sm text-red-800"}>{message}</span><button disabled={isSubmitting || !isDirty} className="min-h-11 rounded-md bg-slate-900 px-5 font-semibold text-white disabled:opacity-60">{isSubmitting ? "Guardando…" : isDirty ? "Guardar cambios" : "Guardado ✓"}</button></div>
   </form>;
 }

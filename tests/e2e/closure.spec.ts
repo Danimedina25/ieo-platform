@@ -76,6 +76,12 @@ test.describe.serial("Phase 5B closure and processing", () => {
     for (let index = 0; index < 16; index++) await page.locator(`input[name=check-${index}]`).first().check();
     await page.getByRole("button", { name: "Guardar checklist" }).click();
     await expect(page.getByRole("status")).toHaveText("Checklist guardado.");
+    await expect(page.getByRole("button", { name: "Checklist guardado ✓" })).toBeDisabled();
+    await page.getByLabel("Observación 3").fill("Validadas con el coordinador.");
+    await page.getByRole("button", { name: "Guardar cambios del checklist" }).click();
+    await expect(page.getByRole("button", { name: "Checklist guardado ✓" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Guardar dictamen Colaboradores" })).toHaveText("Guardado ✓");
+    await expect(page.getByRole("button", { name: "Guardar dictamen Colaboradores" })).toBeDisabled();
   });
   test("E2E-P5B-04 freezing shows the acta; processing records a publishable run", async () => {
     await page.getByRole("button", { name: "Congelar y autorizar procesamiento" }).click();

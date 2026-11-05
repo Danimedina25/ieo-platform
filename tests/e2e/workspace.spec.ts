@@ -51,7 +51,13 @@ test.describe.serial("Phase 2 workspace", () => {
     await page.getByLabel("Coordinador", { exact: true }).selectOption({ label: "Coordinador demo A" });
     await page.getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByRole("status")).toHaveText("Guardado");
+    await expect(page.getByRole("button", { name: "Guardado ✓" })).toBeDisabled();
+    await page.getByLabel("Sponsor", { exact: true }).fill("Sponsor sintético 2");
+    await expect(page.getByRole("button", { name: "Guardar cambios" })).toBeEnabled();
+    await page.getByLabel("Sponsor", { exact: true }).fill("Sponsor sintético");
+    await expect(page.getByRole("button", { name: "Guardado ✓" })).toBeDisabled();
     await page.reload();
+    await expect(page.getByRole("button", { name: "Guardado ✓" })).toBeDisabled();
     await expect(page.getByLabel("Objetivo", { exact: true })).toHaveValue(`Objetivo E2E ${tag}`);
     await expect(page.getByLabel("Zona horaria IANA")).toHaveValue("America/Cancun");
   });

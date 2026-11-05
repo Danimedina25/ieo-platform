@@ -153,21 +153,25 @@ function IncidentForm({ responsible, busy, submit }: { responsible: string; busy
 function VerdictRow({ label, current, editable, busy, save }: { label: string; current?: { verdict: Verdict; reservations: string | null }; editable: boolean; busy: boolean; save: (data: { verdict: Verdict; reservations: string | null }) => Promise<boolean> }) {
   const [verdict, setVerdict] = useState<Verdict>(current?.verdict ?? "A"); const [reservations, setReservations] = useState(current?.reservations ?? "");
   if (!editable) return <p className="text-sm"><span className="font-semibold">{label}:</span> {current ? `${current.verdict}${current.reservations ? ` — ${current.reservations}` : ""}` : "Sin dictamen"}</p>;
+  // Unchanged since the last save: nothing to save, but still editable until the data is frozen.
+  const unchanged = !!current && current.verdict === verdict && (current.reservations ?? "") === reservations.trim();
   return <form className="grid gap-2 rounded border p-3 sm:grid-cols-[10rem_6rem_1fr_auto]" onSubmit={async event => { event.preventDefault(); await save({ verdict, reservations: reservations.trim() || null }); }}>
     <span className="self-center font-semibold">{label}{current ? ` (${current.verdict})` : ""}</span>
     <label className="text-sm">Dictamen<select aria-label={`Dictamen ${label}`} value={verdict} onChange={event => setVerdict(event.target.value as Verdict)} className={field}><option>A</option><option>B</option><option>C</option></select></label>
     <label className="text-sm">Reservas<input aria-label={`Reservas ${label}`} required={verdict !== "A"} value={reservations} onChange={event => setReservations(event.target.value)} className={field} /></label>
-    <button disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold" aria-label={`Guardar dictamen ${label}`}>Guardar</button>
+    <button disabled={busy || unchanged} className="min-h-11 self-end rounded border px-4 font-semibold disabled:opacity-60" aria-label={`Guardar dictamen ${label}`}>{unchanged ? "Guardado ✓" : current ? "Guardar cambios" : "Guardar"}</button>
   </form>;
 }
 
 function Checklist({ initial, editable, busy, save }: { initial: ClosureView["checklist"]; editable: boolean; busy: boolean; save: (items: unknown) => Promise<boolean> }) {
   const [items, setItems] = useState(CHECKLIST_ITEMS.map((_, index) => initial?.find(row => row.item === index + 1) ?? { item: index + 1, answer: "" as "" | "YES" | "NO" | "NA", observation: null as string | null }));
   const complete = items.every(row => row.answer);
+  // Compared with what is stored (initial is refreshed after every save).
+  const unchanged = !!initial && items.every(row => { const stored = initial.find(item => item.item === row.item); return stored && stored.answer === row.answer && (stored.observation ?? "") === (row.observation ?? ""); });
   return <section className={card}><h3 className="text-lg font-semibold">Checklist oficial de aplicación</h3>
     <ol className="mt-3 space-y-3">{CHECKLIST_ITEMS.map((text, index) => <li key={text} className="rounded border p-3"><fieldset disabled={!editable}><legend className="text-sm font-medium">{index + 1}. {text}</legend>
       <div className="mt-2 flex flex-wrap items-center gap-3">{(["YES", "NO", "NA"] as const).map(answer => <label key={answer} className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name={`check-${index}`} checked={items[index].answer === answer} onChange={() => setItems(previous => previous.map((row, position) => position === index ? { ...row, answer } : row))} />{{ YES: "Sí", NO: "No", NA: "N/A" }[answer]}</label>)}
         <input aria-label={`Observación ${index + 1}`} placeholder="Observación (opcional)" value={items[index].observation ?? ""} onChange={event => setItems(previous => previous.map((row, position) => position === index ? { ...row, observation: event.target.value || null } : row))} className="min-h-11 flex-1 rounded border px-3 text-sm" /></div></fieldset></li>)}</ol>
-    {editable && <button disabled={busy || !complete} className={`${button} mt-4`} onClick={() => save(items)}>Guardar checklist</button>}
+    {editable && <div className="mt-4 flex flex-wrap items-center gap-3"><button disabled={busy || !complete || unchanged} className={button} onClick={() => save(items)}>{unchanged ? "Checklist guardado ✓" : initial ? "Guardar cambios del checklist" : "Guardar checklist"}</button>{!complete && <span className="text-sm text-slate-600">Contesta los 16 puntos para poder guardarlo.</span>}</div>}
   </section>;
 }
