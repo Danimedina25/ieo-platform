@@ -18,7 +18,7 @@ export function integer(exact: string | null) { const value = parseExact(exact);
 export const PERSPECTIVE_NAMES = { DIR: "Dirección", ESP: "Especialistas", LID: "Liderazgo", COL: "Colaboradores", CLI: "Voz del Cliente" } as const;
 export const ELEMENT_NAMES = { E01: "Valor Diferenciador", E02: "Ejecución y Resultados", E03: "Dirección y Propósito", E04: "Liderazgo e Inspiración", E05: "Pasión y Compromiso Humano", E06: "Credibilidad y Reputación", E07: "Sensibilidad hacia el Cliente", E08: "Innovación y Adaptación" } as const;
 export const REASON_LABELS: Record<string, string> = {
-  NOT_APPLIED: "NP — perspectiva no aplicada", NOT_AVAILABLE: "ND — perspectiva no disponible", QUALITY_C: "ND — dictamen C", NO_VALID_PI: "ND — sin evidencia suficiente",
+  NOT_APPLIED: "NP — perspectiva no aplicada", NOT_AVAILABLE: "ND — perspectiva no disponible", QUALITY_C: "ND — dictamen C", NO_VALID_PI: "ND — sin evidencia suficiente", ALL_NA: "ND — todas las respuestas N/A", INSUFFICIENT_COVERAGE: "ND — cobertura menor al 60 %", NO_SESSIONS: "ND — sin cuestionarios analizados",
   ELEMENT_WITHOUT_EVIDENCE: "algún Elemento sin evidencia", NO_INTEGRATED_ELEMENT: "ningún Elemento con dos o más perspectivas (se reporta el índice de la perspectiva)",
 };
 export const GAP_CLASS_LABELS: Record<string, string> = { HIGH_CONVERGENCE: "Alta convergencia", MODERATE_DIFFERENCE: "Diferencia moderada", RELEVANT_GAP: "Brecha relevante", CRITICAL_GAP: "Brecha crítica" };

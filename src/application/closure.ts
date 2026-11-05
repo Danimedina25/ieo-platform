@@ -247,9 +247,22 @@ export async function freezeAssessment(token: string | undefined, assessmentId: 
 // ── Process ────────────────────────────────────────────────────────────────────────────
 const decimal = (value: { toDecimal: (digits?: number) => string } | null) => (value ? value.toDecimal(18) : null);
 const exact = (value: { num: bigint; den: bigint } | null) => (value ? `${value.num}/${value.den}` : null);
+/**
+ * The engine reports NO_VALID_PI when a perspective has no valid PI in an Element. For readers, say why, using the
+ * engine's own per-person results: nobody analyzed, everybody answered all N/A, everybody below 60 %, or a mix.
+ * Presentation detail only: the engine output and its hash are untouched.
+ */
+export function detailedReason(output: EngineOutput, perspectiveCode: string, elementCode: string, reason: string | null) {
+  if (reason !== "NO_VALID_PI") return reason;
+  const people = output.sessionElements.filter(row => row.perspectiveCode === perspectiveCode && row.elementCode === elementCode);
+  if (!people.length) return "NO_SESSIONS";
+  if (people.every(row => row.score.reason === "ALL_NA")) return "ALL_NA";
+  if (people.every(row => row.score.reason === "INSUFFICIENT_COVERAGE")) return "INSUFFICIENT_COVERAGE";
+  return "NO_VALID_PI";
+}
 function resultRows(runId: string, output: EngineOutput) {
   return {
-    perspectiveElements: output.perspectiveElements.map(row => ({ runId, perspectiveCode: row.perspectiveCode, elementCode: row.elementCode, status: row.status, reason: row.reason, validPiCount: row.validPiCount, rpExact: exact(row.rp), rpDecimal: decimal(row.rp) })),
+    perspectiveElements: output.perspectiveElements.map(row => ({ runId, perspectiveCode: row.perspectiveCode, elementCode: row.elementCode, status: row.status, reason: detailedReason(output, row.perspectiveCode, row.elementCode, row.reason), validPiCount: row.validPiCount, rpExact: exact(row.rp), rpDecimal: decimal(row.rp) })),
     elements: output.integrated.map(row => {
       const gap = output.gaps.find(item => item.elementCode === row.elementCode)!;
       return { runId, elementCode: row.elementCode, riStatus: row.status, riExact: exact(row.ri), riDecimal: decimal(row.ri), validPerspectiveCount: row.validPerspectiveCount, perspectivesJson: row.perspectives, btStatus: gap.status, btExact: exact(gap.gap), btDecimal: decimal(gap.gap), btDisplay: gap.displayGap, btClass: gap.gapClass, maxPerspectivesJson: gap.maxPerspectives, minPerspectivesJson: gap.minPerspectives };

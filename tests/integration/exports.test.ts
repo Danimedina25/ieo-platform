@@ -84,7 +84,9 @@ it("P7-INT-02 EXP03 report requires the disclosure review and carries no individ
   const result = await exportOf(tokens.consultant, "EXP03", "REPORT");
   const rows = csv(result, "resultados.csv");
   expect(rows).toHaveLength(40 + 8 + 8 + 5 + 1);
-  expect(rows.find(row => row.result_type === "RP" && row.perspective_code === "COL" && row.element_code === "E01")).toMatchObject({ value_exact: "50/1", status: "VALID", valid_n: "2", analyzed_n: "2" });
+  expect(rows.find(row => row.result_type === "RP" && row.perspective_code === "COL" && row.element_code === "E01")).toMatchObject({ value_exact: "50/1", status: "VALID", valid_people: "2", analyzed_people: "2", valid_perspectives: "", valid_elements: "" });
+  expect(rows.find(row => row.result_type === "RI" && row.element_code === "E01")).toMatchObject({ valid_perspectives: "2", valid_people: "" });
+  expect(rows.find(row => row.result_type === "IEO_PERSPECTIVE" && row.perspective_code === "COL")).toMatchObject({ valid_elements: "8", valid_people: "" });
   expect(rows.find(row => row.result_type === "IEO_GLOBAL")).toMatchObject({ value_exact: "125/2", display_value: "62", status: "COMPLETE" });
   expect(unzip(result).has("puntuaciones_individuales.csv")).toBe(false);
   const content = [...unzip(result).values()].join("\n");

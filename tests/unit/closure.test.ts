@@ -89,3 +89,18 @@ describe("structured incidents", () => {
     expect(Object.entries(SUGGESTED_ACTIONS).filter(([code, list]) => code !== "OTHER" && list.length === 0)).toEqual([]);
   });
 });
+describe("detailed ND reason for readers", () => {
+  it("says why a perspective has no valid PI, without changing the engine output", async () => {
+    const { detailedReason } = await import("@/application/closure");
+    const output = { sessionElements: [
+      { perspectiveCode: "COL", elementCode: "E08", score: { reason: "ALL_NA" } }, { perspectiveCode: "COL", elementCode: "E08", score: { reason: "ALL_NA" } },
+      { perspectiveCode: "COL", elementCode: "E07", score: { reason: "INSUFFICIENT_COVERAGE" } },
+      { perspectiveCode: "DIR", elementCode: "E07", score: { reason: "ALL_NA" } }, { perspectiveCode: "DIR", elementCode: "E07", score: { reason: "INSUFFICIENT_COVERAGE" } },
+    ] } as never;
+    expect(detailedReason(output, "COL", "E08", "NO_VALID_PI")).toBe("ALL_NA");
+    expect(detailedReason(output, "COL", "E07", "NO_VALID_PI")).toBe("INSUFFICIENT_COVERAGE");
+    expect(detailedReason(output, "DIR", "E07", "NO_VALID_PI")).toBe("NO_VALID_PI");
+    expect(detailedReason(output, "LID", "E01", "NO_VALID_PI")).toBe("NO_SESSIONS");
+    expect(detailedReason(output, "COL", "E08", "QUALITY_C")).toBe("QUALITY_C");
+  });
+});
