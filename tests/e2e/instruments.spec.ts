@@ -23,7 +23,7 @@ async function invite(perspectiveCode: string) {
   await page.getByLabel("Correo de prueba").fill(email);
   await page.getByLabel("Perspectiva").selectOption(perspectiveCode);
   await page.getByRole("button", { name: "Crear invitación" }).click();
-  await expect(page.getByRole("row").filter({ hasText: email })).toContainText("SENT");
+  await expect(page.getByRole("row").filter({ hasText: email })).toContainText("Enviada");
   await context.clearCookies();
   await page.goto(lastMail("link", email));
   await page.getByRole("button", { name: "Continuar y recibir código" }).click();

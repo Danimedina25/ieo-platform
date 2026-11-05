@@ -36,7 +36,7 @@ test.describe.serial("Phase 3B COL questionnaire", () => {
     await page.getByLabel("Correo de prueba").fill(`participant-${tag}@example.test`);
     await page.getByLabel("Perspectiva").selectOption("COL");
     await page.getByRole("button", { name: "Crear invitación" }).click();
-    await expect(page.getByRole("row").filter({ hasText: tag })).toContainText("SENT");
+    await expect(page.getByRole("row").filter({ hasText: tag })).toContainText("Enviada");
     invitationId = (await db().invitation.findFirstOrThrow({ where: { assessmentId: demoIds.assessmentOpenA }, orderBy: { createdAt: "desc" } })).id;
     link = lastMail("link");
     await context.clearCookies();

@@ -28,7 +28,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
     adminCookies = await context.cookies();
     await closureTab();
     await expect(page.getByRole("heading", { name: "Estado: Borrador · Revisión 1" })).toBeVisible();
-    await page.getByRole("button", { name: "Abrir aplicación" }).click();
+    await page.getByRole("button", { name: "Abrir aplicación" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, abrir y enviar invitaciones" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Abierto · Revisión 1" })).toBeVisible();
   });
   test("E2E-P5B-02 a participant answers the COL questionnaire while it is open", async () => {
@@ -37,7 +37,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
     await page.getByLabel("Correo de prueba").fill(email);
     await page.getByLabel("Perspectiva").selectOption("COL");
     await page.getByRole("button", { name: "Crear invitación" }).click();
-    await expect(page.getByRole("row").filter({ hasText: email })).toContainText("SENT");
+    await expect(page.getByRole("row").filter({ hasText: email })).toContainText("Enviada");
     await context.clearCookies();
     await page.goto(lastMail("link", email)!);
     await page.getByRole("button", { name: "Continuar y recibir código" }).click();
@@ -54,7 +54,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
     await context.clearCookies();
     await context.addCookies(adminCookies);
     await closureTab();
-    await page.getByRole("button", { name: "Cerrar aplicación" }).click();
+    await page.getByRole("button", { name: "Cerrar aplicación" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, cerrar aplicación" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Cerrado · Revisión 1" })).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Colaboradores" })).toContainText("1");
     const incident = page.locator("form").filter({ has: page.getByRole("heading", { name: "Registrar incidencia" }) });
@@ -84,10 +84,12 @@ test.describe.serial("Phase 5B closure and processing", () => {
     await expect(page.getByRole("button", { name: "Guardar dictamen Colaboradores" })).toBeDisabled();
   });
   test("E2E-P5B-04 freezing shows the acta; processing records a publishable run", async () => {
-    await page.getByRole("button", { name: "Congelar y autorizar procesamiento" }).click();
+    await page.getByRole("button", { name: "Congelar y autorizar procesamiento" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, congelar" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Congelado · Revisión 1" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Acta Oficial de Cierre" })).toBeVisible();
-    await expect(page.getByText(/Hash del acta: [a-f0-9]{64}/)).toBeVisible();
+    await expect(page.getByText("Dictamen global de calidad")).toBeVisible();
+    await page.getByText("Datos de verificación").click();
+    await expect(page.getByText(/Huella del acta: [a-f0-9]{64}/)).toBeVisible();
     await page.getByRole("button", { name: "Procesar" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Procesado · Revisión 1" })).toBeVisible();
     await expect(page.getByText(/Exitoso · vigente · publicable/)).toBeVisible();
@@ -97,7 +99,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
   });
   test("E2E-P5B-05 reopening with a reason starts revision 2", async () => {
     await page.getByLabel("Motivo de reapertura").fill("Se detectó una incidencia de prueba.");
-    await page.getByRole("button", { name: "Reabrir" }).click();
+    await page.getByRole("button", { name: "Reabrir" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, reabrir" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Abierto · Revisión 2" })).toBeVisible();
     await expect(page.getByText(/Revisión 1 · Exitoso/)).toBeVisible();
   });

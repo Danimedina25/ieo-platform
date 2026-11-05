@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
+import { ConfirmButton } from "./confirm-button";
 import { CHECKLIST_ITEMS } from "@/domain/closure/checklist";
 import { statusLabel, type AssessmentStatus } from "@/domain/closure/lifecycle";
 import { exclusionReasons } from "@/domain/closure/schemas";
@@ -25,6 +26,16 @@ export type ClosureView = {
 };
 const NAMES: Record<Perspective, string> = { DIR: "Dirección", ESP: "Especialistas", LID: "Liderazgo", COL: "Colaboradores", CLI: "Voz del Cliente" };
 const APPLICABILITY: Record<string, string> = { APPLICABLE: "Aplicable", NOT_APPLICABLE: "No aplicable", NOT_AVAILABLE: "No disponible" };
+// The acta keeps its stored keys and ISO dates (they are part of its hash); only the display is translated.
+const ACTA_FIELDS = [["organizacion", "Organización"], ["diagnostico", "Diagnóstico"], ["revision", "Revisión"], ["fechaApertura", "Fecha de apertura"], ["fechaCierre", "Fecha de cierre"], ["dictamenGlobal", "Dictamen global de calidad"], ["consultorResponsable", "Consultor responsable"], ["fechaAutorizacionProcesamiento", "Autorización del procesamiento"]] as const;
+const GLOBAL_STATUS: Record<string, string> = { COMPLETE: "completo", LIMITED: "limitado", ND: "no disponible" };
+const VERDICT_LABELS: Record<string, string> = { A: "A — Evidencia válida", B: "B — Válida con reservas", C: "C — Evidencia insuficiente" };
+function actaValue(key: string, value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (key.startsWith("fecha")) return new Date(String(value)).toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" });
+  if (key === "dictamenGlobal") return VERDICT_LABELS[String(value)] ?? String(value);
+  return String(value);
+}
 const field = "mt-1 block min-h-11 w-full rounded border px-3";
 const button = "min-h-11 rounded bg-blue-900 px-4 font-semibold text-white disabled:opacity-50";
 const card = "rounded-lg border border-slate-200 bg-white p-5 sm:p-6";
@@ -50,6 +61,8 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
   }
   const lifecycle = (action: string, done: string, extra: Record<string, string> = {}) => act("lifecycle", "POST", { action, ...extra }, done);
   const closed = view.status === "CLOSED";
+  const invited = view.participation.reduce((total, row) => total + row.invited, 0);
+  const submitted = view.participation.reduce((total, row) => total + row.submitted, 0);
   const applicable = view.perspectives.filter(row => row.applicability === "APPLICABLE").map(row => row.perspectiveCode);
 
   return <div className="space-y-6">
@@ -58,14 +71,23 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
       <p className="mt-2 text-sm text-slate-600">Apertura: {view.openedAt ? new Date(view.openedAt).toLocaleString("es-MX") : "—"} · Cierre: {view.closedAt ? new Date(view.closedAt).toLocaleString("es-MX") : "—"}{view.plannedClosesAt ? ` · Cierre planeado: ${new Date(view.plannedClosesAt).toLocaleString("es-MX")}` : ""}</p>
       <p className="mt-2 rounded border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-950">PRUEBA — datos ficticios. El acta y los resultados no constituyen una aplicación oficial del IEO®.</p>
       <div className="mt-4 flex flex-wrap gap-3">
-        {view.status === "DRAFT" && <button disabled={busy} className={button} onClick={() => lifecycle("open", "Aplicación abierta.")}>Abrir aplicación</button>}
-        {view.status === "OPEN" && <button disabled={busy} className={button} onClick={() => lifecycle("close", "Aplicación cerrada.")}>Cerrar aplicación</button>}
+        {view.status === "DRAFT" && <ConfirmButton label="Abrir aplicación" title="¿Abrir la aplicación?" confirmLabel="Sí, abrir y enviar invitaciones" disabled={busy} className={button} onConfirm={() => lifecycle("open", "Aplicación abierta.")}>
+          <p>{invited === 1 ? "Se enviará por correo el enlace a la invitación registrada." : `Se enviará por correo el enlace a las ${invited} invitaciones registradas.`} Los participantes podrán empezar a responder de inmediato.</p>
+          <p>Los correos enviados no se pueden retirar. Revisa antes los datos generales, las perspectivas y la lista de participantes.</p>
+        </ConfirmButton>}
+        {view.status === "OPEN" && <ConfirmButton label="Cerrar aplicación" title="¿Cerrar la aplicación?" confirmLabel="Sí, cerrar aplicación" disabled={busy} className={button} onConfirm={() => lifecycle("close", "Aplicación cerrada.")}>
+          <p>Nadie podrá seguir respondiendo. Hasta ahora {submitted === 1 ? "hay 1 cuestionario enviado" : `hay ${submitted} cuestionarios enviados`}; los borradores se conservan pero no entran al cálculo.</p>
+          <p>Para volver a recibir respuestas habría que reabrir el diagnóstico, lo que crea una revisión nueva.</p>
+        </ConfirmButton>}
         {view.status === "FROZEN" && <button disabled={busy} className={button} onClick={() => lifecycle("process", "Procesamiento terminado.")}>Procesar</button>}
         {view.status === "PROCESSED" && <button disabled={busy} className={button} onClick={() => lifecycle("process", "Reprocesamiento terminado.")}>Reprocesar</button>}
       </div>
-      {["CLOSED", "FROZEN", "PROCESSED"].includes(view.status) && <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={async event => { event.preventDefault(); if (await lifecycle("reopen", "Diagnóstico reabierto en una revisión nueva.", { reason })) setReason(""); }}>
+      {["CLOSED", "FROZEN", "PROCESSED"].includes(view.status) && <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={event => event.preventDefault()}>
         <label className="text-sm font-medium">Motivo de reapertura<input required value={reason} onChange={event => setReason(event.target.value)} className={field} /></label>
-        <button disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold">Reabrir</button>
+        <ConfirmButton type="submit" label="Reabrir" title="¿Reabrir el diagnóstico?" confirmLabel="Sí, reabrir" disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold" onConfirm={async () => { if (await lifecycle("reopen", "Diagnóstico reabierto en una revisión nueva.", { reason })) setReason(""); }}>
+          <p>Se crea la revisión {view.revisionNumber + 1} y el diagnóstico vuelve a estado Abierto para recibir respuestas.</p>
+          <p>La revisión {view.revisionNumber}, con su acta, su copia congelada y sus resultados, se conserva sin cambios.</p>
+        </ConfirmButton>
       </form>}
     </section>
     {/* Fixed toast: actions happen far down the page, so the confirmation must be visible wherever the user is. */}
@@ -100,20 +122,27 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
 
     {closed && <section className={card}><h3 className="text-lg font-semibold">Congelar y autorizar procesamiento</h3>
       <p className="mt-2 text-sm text-slate-600">Genera el acta oficial y una copia inmutable de los datos (sin identidad, sin borradores ni excluidos). Después ya no se podrán registrar exclusiones ni dictámenes en esta revisión.</p>
-      <button disabled={busy} className={`${button} mt-3`} onClick={() => lifecycle("freeze", "Datos congelados y procesamiento autorizado.")}>Congelar y autorizar procesamiento</button>
+      <div className="mt-3"><ConfirmButton label="Congelar y autorizar procesamiento" title="¿Congelar los datos?" confirmLabel="Sí, congelar" disabled={busy} className={button} onConfirm={() => lifecycle("freeze", "Datos congelados y procesamiento autorizado.")}>
+        <p>Se genera el Acta Oficial de Cierre y una copia de los datos que ya no puede cambiar.</p>
+        <p>En esta revisión ya no podrás registrar exclusiones, dictámenes ni cambios al checklist. Para corregir algo después habría que reabrir el diagnóstico en una revisión nueva.</p>
+      </ConfirmButton></div>
     </section>}
 
     {view.acta && <section className={card}><h3 className="text-lg font-semibold">Acta Oficial de Cierre</h3>
-      <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[14rem_1fr]">
-        {["organizacion", "diagnostico", "revision", "fechaApertura", "fechaCierre", "dictamenGlobal", "consultorResponsable", "fechaAutorizacionProcesamiento"].map(key => <div key={key} className="contents"><dt className="font-semibold">{key}</dt><dd>{String(view.acta![key] ?? "—")}</dd></div>)}
+      <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[16rem_1fr]">
+        {ACTA_FIELDS.map(([key, label]) => <div key={key} className="contents"><dt className="font-semibold">{label}</dt><dd>{actaValue(key, view.acta![key])}</dd></div>)}
       </dl>
-      <p className="mt-3 break-all text-xs text-slate-500">Hash del acta: {view.actaHash} · Hash de la copia congelada: {view.snapshot?.sha256}</p>
+      <details className="mt-3 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Datos de verificación</summary>
+        <p className="mt-2">Huellas digitales que permiten comprobar que el acta y los datos congelados no han cambiado.</p>
+        <p className="mt-1 break-all">Huella del acta: {view.actaHash}</p>
+        <p className="mt-1 break-all">Huella de la copia congelada: {view.snapshot?.sha256}</p>
+      </details>
     </section>}
 
     {view.runs.length > 0 && <section className={card}><h3 className="text-lg font-semibold">Procesamientos</h3>
       <ul className="mt-3 space-y-2">{view.runs.map(run => <li key={run.id} className="rounded border p-3 text-sm"><p className="font-semibold">{new Date(run.requestedAt).toLocaleString("es-MX")} · Revisión {run.revisionNumber} · {run.status === "SUCCEEDED" ? "Exitoso" : "Fallido"}{run.id === view.currentRunId ? " · vigente" : ""}{run.status === "SUCCEEDED" ? (run.publishable ? " · publicable" : " · no publicable (dictamen C global)") : ""}</p>
-        <p className="break-all text-xs text-slate-500">Motor {run.engineVersion} · Global: {run.globalStatus ?? "—"} · entrada {run.inputHash ?? "—"} · salida {run.outputHash ?? "—"}{run.errorMessage ? ` · ${run.errorMessage}` : ""}</p></li>)}</ul>
-      <p className="mt-2 text-xs text-slate-500">Los resultados se consultan en la fase de resultados (Phase 6).</p>
+        <p className="break-all text-xs text-slate-500">Motor {run.engineVersion} · Índice Global: {run.globalStatus ? GLOBAL_STATUS[run.globalStatus] ?? run.globalStatus : "—"} · huella de entrada {run.inputHash ?? "—"} · huella de salida {run.outputHash ?? "—"}{run.errorMessage ? ` · ${run.errorMessage}` : ""}</p></li>)}</ul>
+      <p className="mt-2 text-xs text-slate-500">Consulta los resultados en la pestaña Resultados.</p>
     </section>}
   </div>;
 }
@@ -124,7 +153,7 @@ function ExclusionsForm({ view, busy, submit }: { view: ClosureView; busy: boole
   const [invitationId, setInvitation] = useState(""); const [reasonCode, setReason] = useState("DUPLICATE"); const [description, setDescription] = useState("");
   return <form className={`${card} grid gap-3 sm:grid-cols-3`} onSubmit={async event => { event.preventDefault(); if (await submit({ invitationId, reasonCode, description })) { setInvitation(""); setDescription(""); } }}>
     <h3 className="text-lg font-semibold sm:col-span-3">Excluir un cuestionario enviado</h3>
-    <label className="text-sm font-medium">Cuestionario<select required value={invitationId} onChange={event => setInvitation(event.target.value)} className={field}><option value="">Selecciona…</option>{options.map(row => <option key={row.id} value={row.id}>{row.perspectiveCode} · {row.email}</option>)}</select></label>
+    <label className="text-sm font-medium">Cuestionario<select required value={invitationId} onChange={event => setInvitation(event.target.value)} className={field}><option value="">Selecciona…</option>{options.map(row => <option key={row.id} value={row.id}>{NAMES[row.perspectiveCode]} · {row.email}</option>)}</select></label>
     <label className="text-sm font-medium">Motivo<select value={reasonCode} onChange={event => setReason(event.target.value)} className={field}>{Object.entries(exclusionReasons).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
     <label className="text-sm font-medium">Descripción<input required value={description} onChange={event => setDescription(event.target.value)} className={field} /></label>
     <button disabled={busy || !options.length} className={`${button} sm:col-span-3 sm:justify-self-start`}>Registrar exclusión</button>

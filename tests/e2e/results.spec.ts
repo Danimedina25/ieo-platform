@@ -34,7 +34,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await page.goto(`/diagnosticos/${assessmentId}?tab=resultados`);
     await expect(page.getByText("Todavía no hay un procesamiento exitoso.")).toBeVisible();
     await page.goto(`/diagnosticos/${assessmentId}?tab=cierre`);
-    await page.getByRole("button", { name: "Cerrar aplicación" }).click();
+    await page.getByRole("button", { name: "Cerrar aplicación" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, cerrar aplicación" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Cerrado · Revisión 1" })).toBeVisible();
     for (const [label, done] of [["Global", "Dictamen global guardado."], ["Dirección", "Dictamen de Dirección guardado."], ["Colaboradores", "Dictamen de Colaboradores guardado."]]) {
       await page.getByRole("button", { name: `Guardar dictamen ${label}` }).click();
@@ -43,7 +43,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     for (let index = 0; index < 16; index++) await page.locator(`input[name=check-${index}]`).first().check();
     await page.getByRole("button", { name: "Guardar checklist" }).click();
     await expect(page.getByRole("status")).toHaveText("Checklist guardado.");
-    await page.getByRole("button", { name: "Congelar y autorizar procesamiento" }).click();
+    await page.getByRole("button", { name: "Congelar y autorizar procesamiento" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, congelar" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Congelado · Revisión 1" })).toBeVisible();
     await page.getByRole("button", { name: "Procesar" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Procesado · Revisión 1" })).toBeVisible();
