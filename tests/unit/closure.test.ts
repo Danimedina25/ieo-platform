@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { acceptsResponses, canPerform } from "@/domain/closure/lifecycle";
 import { buildSnapshot, engineInputFromSnapshot, type SnapshotSource } from "@/domain/closure/snapshot";
-import { checklistSchema, exclusionSchema, qualitySchema, qualityScopeKey } from "@/domain/closure/schemas";
+import { checklistSchema, exclusionSchema, incidentSchema, qualitySchema, qualityScopeKey } from "@/domain/closure/schemas";
+import { INCIDENT_TYPES, SUGGESTED_ACTIONS } from "@/domain/closure/incidents";
 import { CHECKLIST_ITEMS } from "@/domain/closure/checklist";
 import { engineInstrument, runEngine } from "@/domain/ieo-engine";
 import { officialCatalogs } from "@/infrastructure/catalog/load";
@@ -73,5 +74,18 @@ describe("closure inputs", () => {
     expect(qualitySchema.safeParse({ perspectiveCode: null, elementCode: "E01", verdict: "A", reservations: null }).success).toBe(false);
     expect(exclusionSchema.safeParse({ invitationId: "00000000-0000-4000-8000-000000000000", reasonCode: "EXTREME_ANSWER", description: "x" }).success).toBe(false);
     expect([qualityScopeKey(null, null), qualityScopeKey("DIR", null), qualityScopeKey("DIR", "E03")]).toEqual(["GLOBAL", "P:DIR", "P:DIR:E03"]);
+  });
+});
+describe("structured incidents", () => {
+  const base = { occurredOn: "2026-11-05", perspectiveCode: null, incidentType: "TECHNICAL_ERROR", impactLevel: "MEDIUM", description: "Falla del servidor", impact: null, action: "Se reinició", responsible: "Consultor" };
+  it("requires a Protocol §15 type and an impact level; the impact comment is optional", () => {
+    expect(incidentSchema.safeParse(base).success).toBe(true);
+    expect(incidentSchema.safeParse({ ...base, incidentType: "RUMOR" }).success).toBe(false);
+    expect(incidentSchema.safeParse({ ...base, impactLevel: undefined }).success).toBe(false);
+    expect(incidentSchema.safeParse({ ...base, impact: "Afectó a dos personas" }).success).toBe(true);
+  });
+  it("offers action suggestions for every type except Other", () => {
+    expect(Object.keys(SUGGESTED_ACTIONS).sort()).toEqual(Object.keys(INCIDENT_TYPES).sort());
+    expect(Object.entries(SUGGESTED_ACTIONS).filter(([code, list]) => code !== "OTHER" && list.length === 0)).toEqual([]);
   });
 });

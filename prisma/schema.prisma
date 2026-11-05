@@ -104,6 +104,21 @@ enum ExclusionReason {
   TECHNICAL_INCIDENT
   REPORTED_MANIPULATION
 }
+enum IncidentType {
+  DUPLICATE_SUBMISSION
+  TEST_RESPONSE
+  OUT_OF_POPULATION
+  TECHNICAL_ERROR
+  PRESSURE_OR_MANIPULATION
+  WINDOW_OR_SCOPE_CHANGE
+  EMAIL_NOT_RECEIVED
+  OTHER
+}
+enum ImpactLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
 enum ProcessingStatus {
   SUCCEEDED
   FAILED
@@ -615,8 +630,10 @@ model Incident {
   revisionNumber  Int
   occurredOn      DateTime         @db.Date
   perspectiveCode PerspectiveCode?
+  incidentType    IncidentType     @default(OTHER)
+  impactLevel     ImpactLevel?
   description     String           @db.Text
-  impact          String           @db.Text
+  impact          String?          @db.Text
   action          String           @db.Text
   responsible     String           @db.VarChar(160)
   createdById     String           @db.Char(36)

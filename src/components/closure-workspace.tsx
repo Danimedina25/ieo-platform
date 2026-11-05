@@ -5,6 +5,7 @@ import { workspaceRequest } from "./workspace-api";
 import { CHECKLIST_ITEMS } from "@/domain/closure/checklist";
 import { statusLabel, type AssessmentStatus } from "@/domain/closure/lifecycle";
 import { exclusionReasons } from "@/domain/closure/schemas";
+import { IMPACT_LEVELS, INCIDENT_TYPES, SUGGESTED_ACTIONS, type ImpactLevel, type IncidentType } from "@/domain/closure/incidents";
 
 type Perspective = "DIR" | "ESP" | "LID" | "COL" | "CLI";
 type Verdict = "A" | "B" | "C";
@@ -14,7 +15,8 @@ export type ClosureView = {
   participation: { perspectiveCode: Perspective; applicability: string | null; invited: number; submitted: number; drafts: number; excluded: number }[];
   submittedInvitations: { id: string; email: string; perspectiveCode: Perspective }[];
   exclusions: { id: string; invitationId: string | null; perspectiveCode: Perspective; reasonCode: keyof typeof exclusionReasons; description: string }[];
-  incidents: { id: string; occurredOn: string; perspectiveCode: Perspective | null; description: string; impact: string; action: string; responsible: string }[];
+  incidents: { id: string; occurredOn: string; perspectiveCode: Perspective | null; incidentType: IncidentType; impactLevel: ImpactLevel | null; description: string; impact: string | null; action: string; responsible: string }[];
+  currentUserName: string;
   verdicts: { perspectiveCode: Perspective | null; elementCode: string | null; verdict: Verdict; reservations: string | null }[];
   checklist: { item: number; answer: "YES" | "NO" | "NA"; observation: string | null }[] | null;
   acta: Record<string, unknown> | null; actaHash: string | null;
@@ -77,9 +79,9 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
       {view.exclusions.length ? <ul className="mt-3 space-y-2">{view.exclusions.map(row => <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3 text-sm"><span>{NAMES[row.perspectiveCode]} · {exclusionReasons[row.reasonCode]}: {row.description}{row.invitationId ? ` (${view.submittedInvitations.find(item => item.id === row.invitationId)?.email ?? "invitación"})` : ""}</span>{closed && <button disabled={busy} onClick={() => act(`exclusions/${row.id}`, "DELETE", undefined, "Exclusión revocada.")} className="min-h-11 px-2 text-blue-900 underline">Revocar</button>}</li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin exclusiones.</p>}
     </section>
 
-    {closed && <IncidentForm busy={busy} submit={data => act("incidents", "POST", data, "Incidencia registrada.")} />}
+    {closed && <IncidentForm responsible={view.currentUserName} busy={busy} submit={data => act("incidents", "POST", data, "Incidencia registrada.")} />}
     <section className={card}><h3 className="text-lg font-semibold">Incidencias</h3>
-      {view.incidents.length ? <ul className="mt-3 space-y-2">{view.incidents.map(row => <li key={row.id} className="rounded border p-3 text-sm">{row.occurredOn} · {row.perspectiveCode ? NAMES[row.perspectiveCode] : "General"} · {row.description} — Impacto: {row.impact}. Acción: {row.action}. Responsable: {row.responsible}</li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin incidencias registradas.</p>}
+      {view.incidents.length ? <ul className="mt-3 space-y-2">{view.incidents.map(row => <li key={row.id} className="rounded border p-3 text-sm"><p className="font-semibold">{row.occurredOn} · {row.perspectiveCode ? NAMES[row.perspectiveCode] : "General"} · {INCIDENT_TYPES[row.incidentType]}{row.impactLevel ? ` · Impacto ${IMPACT_LEVELS[row.impactLevel].label.toLowerCase()}` : ""}</p><p>{row.description}{row.impact ? ` — ${row.impact}` : ""}</p><p className="text-slate-600">Acción: {row.action} · Responsable: {row.responsible}</p></li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin incidencias registradas.</p>}
     </section>
 
     <section className={card}><h3 className="text-lg font-semibold">Dictamen de calidad</h3>
@@ -126,18 +128,23 @@ function ExclusionsForm({ view, busy, submit }: { view: ClosureView; busy: boole
   </form>;
 }
 
-function IncidentForm({ busy, submit }: { busy: boolean; submit: (data: unknown) => Promise<boolean> }) {
-  const empty = { occurredOn: new Date().toISOString().slice(0, 10), perspectiveCode: "", description: "", impact: "", action: "", responsible: "" };
+function IncidentForm({ responsible, busy, submit }: { responsible: string; busy: boolean; submit: (data: unknown) => Promise<boolean> }) {
+  const empty = { occurredOn: new Date().toISOString().slice(0, 10), perspectiveCode: "", incidentType: "" as IncidentType | "", impactLevel: "" as ImpactLevel | "", description: "", impact: "", action: "", responsible };
   const [form, setForm] = useState(empty);
   const set = (key: keyof typeof empty) => (event: { target: { value: string } }) => setForm(previous => ({ ...previous, [key]: event.target.value }));
-  return <form className={`${card} grid gap-3 sm:grid-cols-2`} onSubmit={async event => { event.preventDefault(); if (await submit({ ...form, perspectiveCode: form.perspectiveCode || null })) setForm(empty); }}>
+  const suggestions = form.incidentType ? SUGGESTED_ACTIONS[form.incidentType] : [];
+  return <form className={`${card} grid gap-3 sm:grid-cols-2`} onSubmit={async event => { event.preventDefault(); if (await submit({ ...form, perspectiveCode: form.perspectiveCode || null, impact: form.impact.trim() || null })) setForm(empty); }}>
     <h3 className="text-lg font-semibold sm:col-span-2">Registrar incidencia</h3>
     <label className="text-sm font-medium">Fecha<input type="date" required value={form.occurredOn} onChange={set("occurredOn")} className={field} /></label>
     <label className="text-sm font-medium">Perspectiva<select value={form.perspectiveCode} onChange={set("perspectiveCode")} className={field}><option value="">General</option>{Object.entries(NAMES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
-    <label className="text-sm font-medium">Incidencia<input required value={form.description} onChange={set("description")} className={field} /></label>
-    <label className="text-sm font-medium">Impacto<input required value={form.impact} onChange={set("impact")} className={field} /></label>
-    <label className="text-sm font-medium">Acción tomada<input required value={form.action} onChange={set("action")} className={field} /></label>
+    <label className="text-sm font-medium">Tipo de incidencia<select aria-label="Tipo de incidencia" required value={form.incidentType} onChange={event => setForm(previous => ({ ...previous, incidentType: event.target.value as IncidentType, action: "" }))} className={field}><option value="">Selecciona…</option>{Object.entries(INCIDENT_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
+    <label className="text-sm font-medium">Impacto<select aria-label="Impacto" required value={form.impactLevel} onChange={set("impactLevel")} className={field}><option value="">Selecciona…</option>{Object.entries(IMPACT_LEVELS).map(([code, level]) => <option key={code} value={code}>{level.label} — {level.description}</option>)}</select></label>
+    <label className="text-sm font-medium sm:col-span-2">Descripción<input required value={form.description} onChange={set("description")} placeholder="Qué pasó, con el detalle necesario" className={field} /></label>
+    <label className="text-sm font-medium">Comentario sobre el impacto (opcional)<input value={form.impact} onChange={set("impact")} className={field} /></label>
     <label className="text-sm font-medium">Responsable<input required value={form.responsible} onChange={set("responsible")} className={field} /></label>
+    <label className="text-sm font-medium sm:col-span-2">Acción tomada<input required list="incident-actions" value={form.action} onChange={set("action")} placeholder={suggestions.length ? "Elige una sugerencia o escribe la tuya" : "Qué se hizo para resolverlo"} className={field} /><datalist id="incident-actions">{suggestions.map(text => <option key={text} value={text} />)}</datalist></label>
+    {suggestions.length > 0 && <div className="flex flex-wrap gap-2 sm:col-span-2">{suggestions.map(text => <button key={text} type="button" onClick={() => setForm(previous => ({ ...previous, action: text }))} className="min-h-11 rounded border border-slate-300 px-3 text-left text-sm hover:bg-slate-50">{text}</button>)}</div>}
+    <p className="text-xs text-slate-500 sm:col-span-2">Los tipos provienen del Protocolo §15. Los niveles de impacto son una propuesta técnica pendiente de validar con Marco.</p>
     <button disabled={busy} className={`${button} sm:col-span-2 sm:justify-self-start`}>Registrar incidencia</button>
   </form>;
 }

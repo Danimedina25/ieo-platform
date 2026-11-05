@@ -110,8 +110,8 @@ export async function recordIncident(token: string | undefined, assessmentId: st
   return db().$transaction(async tx => {
     const assessment = await lockForConsultant(tx, user.id, assessmentId);
     requireClosed(assessment.status);
-    const row = await tx.incident.create({ data: { assessmentId, revisionNumber: assessment.revisionNumber, occurredOn: new Date(`${data.occurredOn}T00:00:00Z`), perspectiveCode: data.perspectiveCode, description: data.description, impact: data.impact, action: data.action, responsible: data.responsible, createdById: user.id } });
-    await audit(tx, assessment, user.id, "INCIDENT_RECORDED", "Incident", row.id, { perspectiveCode: data.perspectiveCode });
+    const row = await tx.incident.create({ data: { assessmentId, revisionNumber: assessment.revisionNumber, occurredOn: new Date(`${data.occurredOn}T00:00:00Z`), perspectiveCode: data.perspectiveCode, incidentType: data.incidentType, impactLevel: data.impactLevel, description: data.description, impact: data.impact || null, action: data.action, responsible: data.responsible, createdById: user.id } });
+    await audit(tx, assessment, user.id, "INCIDENT_RECORDED", "Incident", row.id, { perspectiveCode: data.perspectiveCode, incidentType: data.incidentType, impactLevel: data.impactLevel });
     return { id: row.id };
   });
 }
@@ -186,7 +186,8 @@ export async function readClosure(token: string | undefined, assessmentId: strin
       participation: data.participation,
       submittedInvitations: data.invitations.filter(row => row.binding?.responseSession.status === "SUBMITTED").map(row => ({ id: row.id, email: decryptEmail(row.emailCiphertext), perspectiveCode: row.perspective.perspectiveCode })),
       exclusions: data.exclusions.map(row => ({ id: row.id, invitationId: row.responseSession.binding?.invitationId ?? null, perspectiveCode: row.responseSession.perspective.perspectiveCode, reasonCode: row.reasonCode, description: row.description })),
-      incidents: data.incidents.map(row => ({ id: row.id, occurredOn: row.occurredOn.toISOString().slice(0, 10), perspectiveCode: row.perspectiveCode, description: row.description, impact: row.impact, action: row.action, responsible: row.responsible })),
+      incidents: data.incidents.map(row => ({ id: row.id, occurredOn: row.occurredOn.toISOString().slice(0, 10), perspectiveCode: row.perspectiveCode, incidentType: row.incidentType, impactLevel: row.impactLevel, description: row.description, impact: row.impact, action: row.action, responsible: row.responsible })),
+      currentUserName: (await tx.user.findUniqueOrThrow({ where: { id: user.id }, select: { name: true, email: true } })).name ?? user.email,
       verdicts: data.verdicts.map(row => ({ perspectiveCode: row.perspectiveCode, elementCode: row.elementCode, verdict: row.verdict, reservations: row.reservations })),
       checklist: (data.record?.checklistJson as ChecklistAnswer[] | null) ?? null,
       acta: data.record?.actaJson ?? null, actaHash: data.record?.actaHash ?? null,
@@ -231,7 +232,7 @@ export async function freezeAssessment(token: string | undefined, assessmentId: 
       openedAt: assessment.openedAt!, closedAt: assessment.closedAt!,
       participation: data.participation.map(row => ({ ...row, applicability: row.applicability! })),
       verdicts: data.verdicts.map(row => ({ perspectiveCode: row.perspectiveCode, elementCode: row.elementCode, verdict: row.verdict, reservations: row.reservations })),
-      incidents: data.incidents.map(row => ({ occurredOn: row.occurredOn.toISOString().slice(0, 10), perspectiveCode: row.perspectiveCode, description: row.description, impact: row.impact, action: row.action, responsible: row.responsible })),
+      incidents: data.incidents.map(row => ({ occurredOn: row.occurredOn.toISOString().slice(0, 10), perspectiveCode: row.perspectiveCode, incidentType: row.incidentType, impactLevel: row.impactLevel, description: row.description, impact: row.impact, action: row.action, responsible: row.responsible })),
       exclusions: data.exclusions.map(row => ({ perspectiveCode: row.responseSession.perspective.perspectiveCode, reasonCode: row.reasonCode, description: row.description })),
       checklist, consultant, authorizedAt,
     });

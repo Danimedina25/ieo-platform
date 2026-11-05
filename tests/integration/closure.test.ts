@@ -135,7 +135,8 @@ it("P5B-INT-06 only submitted questionnaires can be excluded; exclusions can be 
   expect((await readClosure(tokens.consultant, assessmentId)).exclusions).toEqual([expect.objectContaining({ invitationId: invitations.col3, perspectiveCode: "COL", reasonCode: "DUPLICATE" })]);
 });
 it("P5B-INT-07 freezing requires checklist, global verdict and a verdict per applicable perspective", async () => {
-  await recordIncident(tokens.consultant, assessmentId, { occurredOn: "2026-10-18", perspectiveCode: "COL", description: "Correo rebotado", impact: "Bajo", action: "Reenvío", responsible: "Consultor demo" });
+  await expect(recordIncident(tokens.consultant, assessmentId, { occurredOn: "2026-10-18", perspectiveCode: "COL", incidentType: "EMAIL_NOT_RECEIVED", description: "Correo rebotado", impact: null, action: "Reenvío", responsible: "Consultor demo" })).rejects.toThrow(); // impact level required
+  await recordIncident(tokens.consultant, assessmentId, { occurredOn: "2026-10-18", perspectiveCode: "COL", incidentType: "EMAIL_NOT_RECEIVED", impactLevel: "LOW", description: "Correo rebotado", impact: null, action: "Se reenvió la invitación con un enlace nuevo.", responsible: "Consultor demo" });
   await expect(freezeAssessment(tokens.consultant, assessmentId)).rejects.toMatchObject({ status: 422, message: expect.stringContaining("checklist") });
   await expect(saveChecklist(tokens.consultant, assessmentId, { items: checklist.items.slice(0, 15) })).rejects.toThrow();
   await saveChecklist(tokens.consultant, assessmentId, checklist);
@@ -165,6 +166,7 @@ it("P5B-INT-08 freezing writes the acta and an identity-free snapshot without dr
   expect(acta.perspectivasInsuficientesONP).toEqual(expect.arrayContaining([{ perspectiva: "Liderazgo", motivo: "ND — no disponible" }, { perspectiva: "Especialistas", motivo: "NP — no aplicable" }]));
   expect(JSON.stringify(acta)).not.toContain(`col3-${tag}`);
   expect((acta.checklist as unknown[])).toHaveLength(16);
+  expect(acta.incidenciasRelevantes).toEqual([expect.objectContaining({ perspectiva: "Colaboradores", tipo: "Invitación o código no recibido", impacto: "Bajo", accion: "Se reenvió la invitación con un enlace nuevo." })]);
   await expect(recordQuality(tokens.consultant, assessmentId, { perspectiveCode: "COL", elementCode: null, verdict: "C", reservations: "x" })).rejects.toMatchObject({ status: 409 });
 });
 it("P5B-INT-09 processing runs the engine on the snapshot and stores typed results", async () => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CHECKLIST_ITEMS } from "./checklist";
+import { IMPACT_LEVELS, INCIDENT_TYPES } from "./incidents";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const perspective = z.enum(["DIR", "ESP", "LID", "COL", "CLI"]);
@@ -8,7 +9,12 @@ export const exclusionReasons = { DUPLICATE: "Duplicado o envío repetido", TEST
 
 export const reopenSchema = z.object({ reason: text(2000) }).strict();
 export const exclusionSchema = z.object({ invitationId: z.uuid(), reasonCode: z.enum(Object.keys(exclusionReasons) as [keyof typeof exclusionReasons, ...(keyof typeof exclusionReasons)[]]), description: text(2000) }).strict();
-export const incidentSchema = z.object({ occurredOn: z.iso.date(), perspectiveCode: perspective.nullable(), description: text(2000), impact: text(2000), action: text(2000), responsible: text(160) }).strict();
+export const incidentSchema = z.object({
+  occurredOn: z.iso.date(), perspectiveCode: perspective.nullable(),
+  incidentType: z.enum(Object.keys(INCIDENT_TYPES) as [keyof typeof INCIDENT_TYPES, ...(keyof typeof INCIDENT_TYPES)[]]),
+  impactLevel: z.enum(Object.keys(IMPACT_LEVELS) as [keyof typeof IMPACT_LEVELS, ...(keyof typeof IMPACT_LEVELS)[]]),
+  description: text(2000), impact: z.string().trim().max(2000).nullable(), action: text(2000), responsible: text(160),
+}).strict();
 export const qualitySchema = z.object({
   perspectiveCode: perspective.nullable(),
   elementCode: element.nullable(),

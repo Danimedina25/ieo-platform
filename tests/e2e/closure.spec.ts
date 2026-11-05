@@ -57,6 +57,16 @@ test.describe.serial("Phase 5B closure and processing", () => {
     await page.getByRole("button", { name: "Cerrar aplicación" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Cerrado · Revisión 1" })).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Colaboradores" })).toContainText("1");
+    const incident = page.locator("form").filter({ has: page.getByRole("heading", { name: "Registrar incidencia" }) });
+    await incident.getByLabel("Tipo de incidencia").selectOption("EMAIL_NOT_RECEIVED");
+    await incident.getByLabel("Impacto", { exact: true }).selectOption("LOW");
+    await incident.getByLabel("Descripción").fill("Un participante no recibió el correo.");
+    await expect(incident.getByLabel("Responsable")).toHaveValue("Consultor demo A");
+    await incident.getByRole("button", { name: "Se reenvió la invitación con un enlace nuevo." }).click();
+    await expect(incident.getByLabel("Acción tomada")).toHaveValue("Se reenvió la invitación con un enlace nuevo.");
+    await incident.getByRole("button", { name: "Registrar incidencia" }).click();
+    await expect(page.getByRole("status")).toHaveText("Incidencia registrada.");
+    await expect(page.getByText("Invitación o código no recibido · Impacto bajo")).toBeVisible();
     await page.getByRole("button", { name: "Guardar dictamen Global" }).click();
     await expect(page.getByRole("status")).toHaveText("Dictamen global guardado.");
     await page.getByLabel("Dictamen Colaboradores", { exact: true }).selectOption("B");

@@ -6,7 +6,7 @@ Fecha: 2026-10-19. El sistema está completo en su versión de prueba (Phases 1 
 
 | # | Qué se necesita | Estado hoy | ¿Bloquea el piloto? |
 |---|---|---|---|
-| 1.1 | Confirmar las reglas adoptadas provisionalmente el 2026-10-17 y 18: redondeo de la Brecha (.5 baja), Global «limitado» o sin calcular, efecto del dictamen C, exclusiones sólo de cuestionarios completos y reapertura por el consultor | Funcionan como provisionales | Sí: deben quedar confirmadas o corregidas |
+| 1.1 | Confirmar las reglas adoptadas provisionalmente el 2026-10-17 y 18: redondeo de la Brecha (.5 baja), Global «limitado» o sin calcular, efecto del dictamen C, exclusiones sólo de cuestionarios completos, reapertura por el consultor y niveles de impacto de las incidencias (Bajo, Medio, Alto) | Funcionan como provisionales | Sí: deben quedar confirmadas o corregidas |
 | 1.2 | Designar al **custodio metodológico** que aprueba el acceso a datos individuales (propuesto: Marco o quien él designe) y confirmar la regla: el consultor pide, el custodio aprueba, nadie se aprueba a sí mismo, máximo 30 días (GAP-011) | Provisional | Sí |
 | 1.3 | **Certificar el catálogo**: entregar el Banco Maestro o declarar por escrito que el Diccionario en Excel es la versión oficial de los 329 reactivos y 28 abiertas (GAP-001) | Pendiente | Sí |
 | 1.4 | Entregar el **Protocolo de Triangulación 1.1**, la **Guía de Interpretación** y la **Plantilla de Reporte** (GAP-002) | No recibidos | No para aplicar; sí para interpretar y reportar con los criterios oficiales |

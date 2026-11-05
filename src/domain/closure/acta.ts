@@ -1,6 +1,7 @@
 import { sha256Canonical } from "@/domain/canonical";
 import { CHECKLIST_ITEMS, type ChecklistAnswer } from "./checklist";
 import { exclusionReasons } from "./schemas";
+import { IMPACT_LEVELS, INCIDENT_TYPES, type ImpactLevel, type IncidentType } from "./incidents";
 
 type Perspective = "DIR" | "ESP" | "LID" | "COL" | "CLI";
 const NAMES: Record<Perspective, string> = { DIR: "Dirección", ESP: "Especialistas", LID: "Liderazgo", COL: "Colaboradores", CLI: "Voz del Cliente" };
@@ -11,7 +12,7 @@ export type ActaSource = Readonly<{
   openedAt: Date; closedAt: Date;
   participation: readonly Readonly<{ perspectiveCode: Perspective; applicability: "APPLICABLE" | "NOT_APPLICABLE" | "NOT_AVAILABLE"; invited: number; submitted: number; drafts: number; excluded: number }>[];
   verdicts: readonly Readonly<{ perspectiveCode: Perspective | null; elementCode: string | null; verdict: "A" | "B" | "C"; reservations: string | null }>[];
-  incidents: readonly Readonly<{ occurredOn: string; perspectiveCode: Perspective | null; description: string; impact: string; action: string; responsible: string }>[];
+  incidents: readonly Readonly<{ occurredOn: string; perspectiveCode: Perspective | null; incidentType: IncidentType; impactLevel: ImpactLevel | null; description: string; impact: string | null; action: string; responsible: string }>[];
   exclusions: readonly Readonly<{ perspectiveCode: Perspective; reasonCode: keyof typeof exclusionReasons; description: string }>[];
   checklist: readonly ChecklistAnswer[];
   consultant: Readonly<{ name: string | null; email: string }>;
@@ -38,7 +39,7 @@ export function buildActa(source: ActaSource) {
     perspectivasValidas: listOf(row => row.applicability === "APPLICABLE" && perspectiveVerdict(row.perspectiveCode)?.verdict === "A"),
     perspectivasConReservas: listOf(row => row.applicability === "APPLICABLE" && perspectiveVerdict(row.perspectiveCode)?.verdict === "B"),
     perspectivasInsuficientesONP: source.participation.filter(row => row.applicability !== "APPLICABLE" || perspectiveVerdict(row.perspectiveCode)?.verdict === "C").map(row => ({ perspectiva: NAMES[row.perspectiveCode], motivo: row.applicability === "NOT_APPLICABLE" ? "NP — no aplicable" : row.applicability === "NOT_AVAILABLE" ? "ND — no disponible" : "Dictamen C" })),
-    incidenciasRelevantes: source.incidents.map(row => ({ fecha: row.occurredOn, perspectiva: row.perspectiveCode ? NAMES[row.perspectiveCode] : "General", incidencia: row.description, impacto: row.impact, accion: row.action, responsable: row.responsible })),
+    incidenciasRelevantes: source.incidents.map(row => ({ fecha: row.occurredOn, perspectiva: row.perspectiveCode ? NAMES[row.perspectiveCode] : "General", tipo: INCIDENT_TYPES[row.incidentType], incidencia: row.description, impacto: [row.impactLevel ? IMPACT_LEVELS[row.impactLevel].label : null, row.impact].filter(Boolean).join(" — ") || null, accion: row.action, responsable: row.responsible })),
     exclusionesDocumentadas: source.exclusions.map(row => ({ perspectiva: NAMES[row.perspectiveCode], motivo: exclusionReasons[row.reasonCode], descripcion: row.description })),
     dictamenGlobal: source.verdicts.find(row => !row.perspectiveCode)!.verdict,
     reservasMetodologicas: source.verdicts.filter(row => row.reservations).map(row => ({ ambito: row.perspectiveCode ? `${NAMES[row.perspectiveCode]}${row.elementCode ? ` · ${row.elementCode}` : ""}` : "Global", dictamen: row.verdict, reservas: row.reservations })),
