@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { integer, oneDecimal } from "@/domain/results/format";
+import { colorBand, elementList, integer, oneDecimal } from "@/domain/results/format";
 import { disclosureWarnings } from "@/domain/results/disclosure";
 import { disclosureSchema, patternSchema, qualitativeReviewSchema } from "@/domain/results/schemas";
 
@@ -44,5 +44,20 @@ describe("review inputs", () => {
     expect(qualitativeReviewSchema.safeParse({ runId: id, surveyResponseId: id, status: "REDACTED", redactedText: null }).success).toBe(false);
     expect(qualitativeReviewSchema.safeParse({ runId: id, surveyResponseId: id, status: "SAFE_FOR_REPORT", redactedText: "x" }).success).toBe(false);
     expect(qualitativeReviewSchema.safeParse({ runId: id, surveyResponseId: id, status: "REDACTED", redactedText: "texto [redactado]" }).success).toBe(true);
+  });
+});
+
+describe("matrix color reference and element lists", () => {
+  it("bands an RP like the Global: rounded with .5 down, then the Semáforo ranges", () => {
+    expect(colorBand("179/2")).toBe("LIGHT_GREEN"); // 89.5 → 89, not 90
+    expect(colorBand("181/2")).toBe("DARK_GREEN"); // 90.5 → 90
+    expect(colorBand("159/2")).toBe("YELLOW"); // 79.5 → 79
+    expect(colorBand("399/5")).toBe("LIGHT_GREEN"); // 79.8 → 80
+    expect(colorBand("34")).toBe("RED");
+    expect(colorBand(null)).toBeNull();
+  });
+  it("says «los 8 Elementos» instead of listing all eight", () => {
+    expect(elementList(["E01", "E02", "E03", "E04", "E05", "E06", "E07", "E08"])).toBe("los 8 Elementos");
+    expect(elementList(["E01", "E08"])).toBe("Valor Diferenciador, Innovación y Adaptación");
   });
 });

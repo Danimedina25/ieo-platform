@@ -84,8 +84,8 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await page.locator("input[name=disclosure-DIR]").nth(1).check();
     await page.getByLabel("Motivo Dirección", { exact: true }).fill("Dos directivos: riesgo de identificación.");
     await page.getByRole("button", { name: "Guardar divulgación Dirección" }).click();
-    await expect(page.getByText(/Dirección: No reportable — Dos directivos/)).toBeVisible();
-    await expect(page.getByText(/Oculta, pero deducible a partir del RI o la BT/)).toBeVisible();
+    await expect(page.getByText("Motivo: Dos directivos: riesgo de identificación.", { exact: false })).toBeVisible();
+    await expect(page.getByText(/Aunque la ocultes, se puede deducir/)).toBeVisible();
     await expect(page.getByLabel("Índice Global 62")).toBeVisible();
   });
   test("E2E-P6-05 an open answer is redacted without touching the original", async () => {
@@ -113,7 +113,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await page.locator("input[name=disclosure-COL]").first().check();
     await page.getByLabel("Motivo Colaboradores", { exact: true }).fill("Sin riesgo en la prueba.");
     await page.getByRole("button", { name: "Guardar divulgación Colaboradores" }).click();
-    await expect(page.getByText(/Colaboradores: Reportable/)).toBeVisible();
+    await expect(page.getByText("Motivo: Sin riesgo en la prueba.", { exact: false })).toBeVisible();
     await page.getByRole("link", { name: "Exportaciones", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Exportaciones", exact: true })).toBeVisible();
     const metadata = page.waitForEvent("download");

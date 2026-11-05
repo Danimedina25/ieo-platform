@@ -92,7 +92,3 @@ export async function listCustodianGrants(token: string | undefined) {
   return rows.map(row => ({ ...view(row, user.id), assessment: row.assessment.name, organization: row.assessment.organization.name }));
 }
 
-export async function isCustodian(token: string | undefined) {
-  const user = await requireAuthenticatedUser(token);
-  return (await db().user.findUniqueOrThrow({ where: { id: user.id }, select: { methodologyCustodian: true } })).methodologyCustodian;
-}

@@ -1,4 +1,5 @@
 import { Rational } from "@/domain/ieo-engine/rational";
+import { trafficLight } from "@/domain/ieo-engine/classify";
 
 // Presentation only (Modelo §13): RP/RI with one decimal, BT and Global as integers, same tie rule as the
 // engine (an exact .5 rounds down, GAP-007). Never used as input to any calculation.
@@ -14,6 +15,13 @@ export function oneDecimal(exact: string | null) {
   return `${Math.floor(tenths / 10)}.${tenths % 10}`;
 }
 export function integer(exact: string | null) { const value = parseExact(exact); return value ? value.roundHalfDown() : null; }
+/**
+ * Visual reference only: the Semáforo bands (Modelo §15) applied to an RP or RI rounded like the Global. The
+ * official health classification is assigned only to the Global and the perspective indexes.
+ */
+export function colorBand(exact: string | null) { const value = integer(exact); return value === null ? null : trafficLight(value); }
+/** "los 8 Elementos" instead of repeating all eight names. */
+export function elementList(codes: readonly string[]) { return codes.length === 8 ? "los 8 Elementos" : codes.map(code => ELEMENT_NAMES[code as keyof typeof ELEMENT_NAMES] ?? code).join(", "); }
 
 export const PERSPECTIVE_NAMES = { DIR: "Dirección", ESP: "Especialistas", LID: "Liderazgo", COL: "Colaboradores", CLI: "Voz del Cliente" } as const;
 export const ELEMENT_NAMES = { E01: "Valor Diferenciador", E02: "Ejecución y Resultados", E03: "Dirección y Propósito", E04: "Liderazgo e Inspiración", E05: "Pasión y Compromiso Humano", E06: "Credibilidad y Reputación", E07: "Sensibilidad hacia el Cliente", E08: "Innovación y Adaptación" } as const;

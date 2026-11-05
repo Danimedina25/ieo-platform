@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { HelpTip } from "./help-tip";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
-import { ELEMENT_NAMES, GAP_CLASS_LABELS, HEALTH_LABELS, LIGHT_LABELS, PATTERN_LABELS, PERSPECTIVE_NAMES, QUALITATIVE_LABELS, REASON_LABELS, integer, oneDecimal } from "@/domain/results/format";
+import { ELEMENT_NAMES, GAP_CLASS_LABELS, HEALTH_LABELS, LIGHT_LABELS, PATTERN_LABELS, PERSPECTIVE_NAMES, QUALITATIVE_LABELS, REASON_LABELS, colorBand, elementList, integer, oneDecimal } from "@/domain/results/format";
 
 type Perspective = keyof typeof PERSPECTIVE_NAMES;
 type Element = keyof typeof ELEMENT_NAMES;
@@ -28,6 +28,11 @@ type Qualitative = { id: string; perspectiveCode: Perspective; elementCode: Elem
 const PERSPECTIVES = Object.keys(PERSPECTIVE_NAMES) as Perspective[];
 const ELEMENTS = Object.keys(ELEMENT_NAMES) as Element[];
 const LIGHT_CLASS: Record<string, string> = { DARK_GREEN: "bg-green-800 text-white", LIGHT_GREEN: "bg-green-300 text-green-950", YELLOW: "bg-yellow-300 text-yellow-950", ORANGE: "bg-orange-400 text-orange-950", RED: "bg-red-700 text-white" };
+// Soft cell tones keyed to the Semáforo bands; the number stays the primary information.
+const BAND_CELL: Record<string, string> = { DARK_GREEN: "border-l-4 border-l-green-800 bg-green-100", LIGHT_GREEN: "border-l-4 border-l-green-500 bg-green-50", YELLOW: "border-l-4 border-l-yellow-400 bg-yellow-50", ORANGE: "border-l-4 border-l-orange-500 bg-orange-50", RED: "border-l-4 border-l-red-700 bg-red-50" };
+const BAND_RANGES: [string, string][] = [["DARK_GREEN", "90–100"], ["LIGHT_GREEN", "80–89"], ["YELLOW", "70–79"], ["ORANGE", "60–69"], ["RED", "0–59"]];
+const GAP_TEXT: Record<string, string> = { CRITICAL_GAP: "text-red-800", RELEVANT_GAP: "text-orange-800" };
+const tone = (exact: string | null) => BAND_CELL[colorBand(exact) ?? ""] ?? "";
 const names = (codes: readonly string[]) => codes.map(code => PERSPECTIVE_NAMES[code as Perspective] ?? code).join(", ");
 const card = "rounded-lg border border-slate-200 bg-white p-5 sm:p-6";
 const field = "mt-1 block min-h-11 w-full rounded border px-3";
@@ -79,15 +84,17 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
           const row = view.elements.find(item => item.elementCode === element)!;
           return <tr key={element} className="border-b align-top">
             <th scope="row" className="p-2 font-semibold">{ELEMENT_NAMES[element]}</th>
-            {PERSPECTIVES.map(perspective => { const value = cell(perspective, element); return <td key={perspective} className="p-2">{value.status === "VALID" ? <><span className="font-semibold">{oneDecimal(value.rpExact)}</span><span className="block text-xs text-slate-500">{value.validPiCount} de {view.analyzed[perspective]} {view.analyzed[perspective] === 1 ? "persona" : "personas"}</span></> : <span className="text-xs text-slate-600">{REASON_LABELS[value.reason ?? ""] ?? value.status}</span>}</td>; })}
-            <td className="p-2">{row.riStatus === "ND" ? <span className="text-xs text-slate-600">ND — sin evidencia</span> : <><span className="font-semibold">{oneDecimal(row.riExact)}</span><span className="block text-xs text-slate-500">{row.riStatus === "INTEGRATED" ? `${row.validPerspectiveCount} perspectivas` : "Limitado: 1 perspectiva"}</span></>}</td>
-            <td className="p-2">{row.btStatus === "NOT_CALCULABLE" ? <span className="text-xs text-slate-600">No calculable</span> : <><span className="font-semibold">{row.btDisplay}</span><span className="block text-xs text-slate-500">{GAP_CLASS_LABELS[row.btClass ?? ""]} · {row.btStatus === "PARTIAL" ? "parcial" : "integrada"}</span><span className="block text-xs text-slate-500">Más alto: {names(row.maxPerspectives)} · Más bajo: {names(row.minPerspectives)}</span></>}</td>
+            {PERSPECTIVES.map(perspective => { const value = cell(perspective, element); return <td key={perspective} className={`p-2 ${value.status === "VALID" ? tone(value.rpExact) : ""}`}>{value.status === "VALID" ? <><span className="font-semibold">{oneDecimal(value.rpExact)}</span><span className="block text-xs text-slate-500">{value.validPiCount} de {view.analyzed[perspective]} {view.analyzed[perspective] === 1 ? "persona" : "personas"}</span></> : <span className="text-xs text-slate-600">{REASON_LABELS[value.reason ?? ""] ?? value.status}</span>}</td>; })}
+            <td className={`p-2 ${row.riStatus === "ND" ? "" : tone(row.riExact)}`}>{row.riStatus === "ND" ? <span className="text-xs text-slate-600">ND — sin evidencia</span> : <><span className="font-semibold">{oneDecimal(row.riExact)}</span><span className="block text-xs text-slate-500">{row.riStatus === "INTEGRATED" ? `${row.validPerspectiveCount} perspectivas` : "Limitado: 1 perspectiva"}</span></>}</td>
+            <td className="p-2">{row.btStatus === "NOT_CALCULABLE" ? <span className="text-xs text-slate-600">No calculable</span> : <><span className={`font-semibold ${GAP_TEXT[row.btClass ?? ""] ?? ""}`}>{row.btClass === "CRITICAL_GAP" && <span aria-hidden="true">⚠ </span>}{row.btDisplay}</span><span className="block text-xs text-slate-500">{GAP_CLASS_LABELS[row.btClass ?? ""]} · {row.btStatus === "PARTIAL" ? "parcial" : "integrada"}</span><span className="block text-xs text-slate-500">Más alto: {names(row.maxPerspectives)} · Más bajo: {names(row.minPerspectives)}</span></>}</td>
           </tr>;
         })}</tbody>
         <tfoot><tr><th scope="row" className="p-2"><span className="inline-flex items-center gap-2">Índice por perspectiva <HelpTip term="perspectiveIndex" /></span></th>{PERSPECTIVES.map(code => { const index = view.perspectiveIndexes.find(row => row.perspectiveCode === code)!; return <td key={code} className="p-2">{index.status === "COMPLETE" ? <><span className="font-semibold">{integer(index.valueExact)}</span><span className="block text-xs text-slate-500">{HEALTH_LABELS[index.healthLevel ?? 0]}</span></> : <span className="text-xs text-slate-600">{index.status === "NP" ? "NP — no aplicada" : `ND — ${index.validElementCount} de 8 Elementos con resultado`}</span>}</td>; })}<td /><td /></tr></tfoot>
       </table></div>
       <p className="mt-2 text-xs text-slate-500">Cada celda es el resultado de una perspectiva en un Elemento (RP) y cuántas de sus personas analizadas tienen resultado válido. RP y RI se muestran con un decimal; la brecha y el Global como enteros (un .5 exacto baja). La brecha mide la distancia entre la perspectiva que califica más alto y la que califica más bajo: indica desacuerdo, no salud.</p>
       <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">¿Qué significan ND y NP en una celda? <HelpTip term="ndnp" /></p>
+      <div className="mt-3 text-xs text-slate-600"><ul aria-label="Colores de la matriz" className="flex flex-wrap gap-2">{BAND_RANGES.map(([band, range]) => <li key={band} className={`rounded px-2 py-1 ${BAND_CELL[band]}`}>{LIGHT_LABELS[band]} {range}</li>)}</ul>
+        <p className="mt-1">Los colores son una referencia visual con las bandas del Semáforo Organizacional. La clasificación oficial de nivel de salud sólo se asigna al Índice Global y a los índices por perspectiva. Las brechas críticas se marcan con ⚠.</p></div>
       {view.verdicts.some(row => row.reservations) && <div className="mt-3 text-sm"><h4 className="font-semibold">Reservas del dictamen de calidad</h4><ul className="mt-1 list-disc pl-5">{view.verdicts.filter(row => row.reservations).map(row => <li key={`${row.perspectiveCode}-${row.elementCode}`}>{row.perspectiveCode ? PERSPECTIVE_NAMES[row.perspectiveCode] : "Global"}{row.elementCode ? ` · ${ELEMENT_NAMES[row.elementCode as Element]}` : ""} ({row.verdict}): {row.reservations}</li>)}</ul></div>}
     </section>
 
@@ -119,8 +126,9 @@ function PatternRow({ element, current, busy, save }: { element: Element; curren
 function DisclosureRow({ perspective, current, warnings, busy, save }: { perspective: Perspective; current?: ResultsView["disclosures"][number]; warnings: ResultsView["warnings"]; busy: boolean; save: (data: { decision: "REPORTABLE" | "NOT_REPORTABLE"; reason: string }) => Promise<boolean> }) {
   const [decision, setDecision] = useState<"REPORTABLE" | "NOT_REPORTABLE">(current?.decision ?? "REPORTABLE"); const [reason, setReason] = useState("");
   return <form className="rounded border p-3" onSubmit={async event => { event.preventDefault(); if (await save({ decision, reason })) setReason(""); }}>
-    <p className="font-semibold">{PERSPECTIVE_NAMES[perspective]}: {current ? `${current.decision === "REPORTABLE" ? "Reportable" : "No reportable"} — ${current.reason} (${current.reviewedBy})` : "Sin revisar"}</p>
-    {warnings.map(warning => <p key={warning.kind} className="mt-1 text-sm text-amber-900">⚠ {warning.kind === "FEW_PEOPLE" ? `Menos de 3 personas válidas en: ${warning.elements.map(code => ELEMENT_NAMES[code]).join(", ")}. Valora el riesgo de identificación.` : `Oculta, pero deducible a partir del RI o la BT de: ${warning.elements.map(code => ELEMENT_NAMES[code]).join(", ")}. Esos resultados integrados también la revelarían.`}</p>)}
+    <p className="flex flex-wrap items-center gap-2"><span className="font-semibold">{PERSPECTIVE_NAMES[perspective]}</span><span className={`rounded px-2 py-0.5 text-xs font-semibold ${!current ? "bg-amber-100 text-amber-950" : current.decision === "REPORTABLE" ? "bg-green-100 text-green-900" : "bg-slate-200 text-slate-800"}`}>{!current ? "Sin revisar" : current.decision === "REPORTABLE" ? "Reportable" : "No reportable"}</span></p>
+    {current && <p className="mt-1 text-sm text-slate-600">Motivo: {current.reason} · Revisó: {current.reviewedBy}</p>}
+    {warnings.map(warning => <p key={warning.kind} className="mt-1 text-sm text-amber-900">⚠ {warning.kind === "FEW_PEOPLE" ? `Menos de 3 personas válidas en ${elementList(warning.elements)}: alguien podría ser identificado.` : `Aunque la ocultes, se puede deducir del resultado integrado o la brecha de ${elementList(warning.elements)}.`}</p>)}
     <div className="mt-2 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto]">
       {(["REPORTABLE", "NOT_REPORTABLE"] as const).map(option => <label key={option} className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name={`disclosure-${perspective}`} checked={decision === option} onChange={() => setDecision(option)} />{option === "REPORTABLE" ? "Reportable" : "No reportable"}</label>)}
       <input aria-label={`Motivo ${PERSPECTIVE_NAMES[perspective]}`} required placeholder="Motivo" value={reason} onChange={event => setReason(event.target.value)} className="min-h-11 rounded border px-3" />

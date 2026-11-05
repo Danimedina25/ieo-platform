@@ -60,3 +60,23 @@ test("login móvil con teclado", async ({ page }) => {
   await expect(page).toHaveURL(/\/diagnosticos$/);
   await expect(page.getByRole("cell", { name: "Organización Demo B" })).toBeVisible();
 });
+test("E2E-UX-02 the quick guide adapts to the coordinator and can be reopened", async ({ page }) => {
+  await signIn(page, "coordinador@ieo.local");
+  await page.getByRole("button", { name: "Guía rápida" }).click();
+  const guide = page.getByRole("dialog", { name: /Te damos la bienvenida/ });
+  await expect(guide).toBeVisible();
+  await guide.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByRole("heading", { name: "Tu papel como coordinador interno" })).toBeVisible();
+  await expect(page.getByText("Tu trabajo, en cinco etapas")).toHaveCount(0);
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await page.getByRole("button", { name: "Empezar" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+test("E2E-UX-03 the custodian's guide explains approvals", async ({ page }) => {
+  await signIn(page, "custodio@ieo.local");
+  await page.getByRole("button", { name: "Guía rápida" }).click();
+  await page.getByRole("button", { name: "Siguiente" }).click();
+  await expect(page.getByRole("heading", { name: "Tu papel como custodio metodológico" })).toBeVisible();
+  await page.getByRole("button", { name: "Saltar guía" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});

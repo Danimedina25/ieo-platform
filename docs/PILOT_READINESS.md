@@ -11,6 +11,7 @@ Fecha: 2026-10-19. El sistema está completo en su versión de prueba (Phases 1 
 | 1.3 | **Certificar el catálogo**: entregar el Banco Maestro o declarar por escrito que el Diccionario en Excel es la versión oficial de los 329 reactivos y 28 abiertas (GAP-001) | Pendiente | Sí |
 | 1.4 | Entregar el **Protocolo de Triangulación 1.1**, la **Guía de Interpretación** y la **Plantilla de Reporte** (GAP-002) | No recibidos | No para aplicar; sí para interpretar y reportar con los criterios oficiales |
 | 1.5 | Aceptar el registro automático de los 23 casos oficiales como evidencia de aceptación matemática (GAP-013) | Hoy 23 de 23 PASS | Sí, como trámite |
+| 1.6 | Revisar las ayudas de la interfaz (`src/domain/help/glossary.ts`) y confirmar que la matriz use los colores del Semáforo como referencia visual en cada celda (el Modelo §14–15 sólo clasifica el Índice) | Implementado con una leyenda que lo aclara | No; si Marco no lo acepta se quitan los colores |
 
 ## 2. Privacidad y retención — Marco, el cliente y su asesor legal (GAP-012)
 
