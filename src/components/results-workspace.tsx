@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 import { ELEMENT_NAMES, GAP_CLASS_LABELS, HEALTH_LABELS, LIGHT_LABELS, PATTERN_LABELS, PERSPECTIVE_NAMES, QUALITATIVE_LABELS, REASON_LABELS, integer, oneDecimal } from "@/domain/results/format";
@@ -35,6 +35,8 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // The confirmation toast disappears by itself; errors stay until the next action.
+  useEffect(() => { if (!message || /no se|error|requiere|revisa|falta/i.test(message)) return; const timer = setTimeout(() => setMessage(""), 5000); return () => clearTimeout(timer); }, [message]);
   async function save(path: string, data: unknown, done: string) {
     setBusy(true); setMessage("");
     try { await workspaceRequest(`/api/assessments/${assessmentId}/results/${path}`, "POST", { runId: view.run.id, ...(data as object) }); setMessage(done); router.refresh(); return true; }
@@ -126,21 +128,23 @@ function DisclosureRow({ perspective, current, warnings, busy, save }: { perspec
 
 function QualitativeSection({ assessmentId, runId, applied, busy, save }: { assessmentId: string; runId: string; applied: Perspective[]; busy: boolean; save: (data: unknown, done: string) => Promise<boolean> }) {
   const [perspective, setPerspective] = useState(""); const [element, setElement] = useState("");
-  const [items, setItems] = useState<Qualitative[] | null>(null); const [error, setError] = useState("");
+  const [items, setItems] = useState<Qualitative[] | null>(null); const [error, setError] = useState(""); const [loading, setLoading] = useState(false);
   async function load() {
-    setError("");
+    setError(""); setLoading(true);
     const query = new URLSearchParams({ run: runId, ...(perspective ? { perspective } : {}), ...(element ? { element } : {}) });
     const response = await fetch(`/api/assessments/${assessmentId}/results/qualitative?${query}`, { cache: "no-store" });
     if (response.ok) setItems(await response.json() as Qualitative[]); else setError("No se pudo cargar la evidencia cualitativa.");
+    setLoading(false);
   }
   return <section className={card}><h3 className="text-lg font-semibold">Evidencia cualitativa</h3>
     <p className="mt-1 text-sm text-slate-600">Respuestas abiertas de los cuestionarios analizados, sin identificadores y en orden aleatorio. El texto original nunca se modifica.</p>
     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
       <label className="text-sm font-medium">Perspectiva<select value={perspective} onChange={event => setPerspective(event.target.value)} className={field}><option value="">Todas</option>{applied.map(code => <option key={code} value={code}>{PERSPECTIVE_NAMES[code]}</option>)}</select></label>
       <label className="text-sm font-medium">Elemento<select value={element} onChange={event => setElement(event.target.value)} className={field}><option value="">Todos</option>{ELEMENTS.map(code => <option key={code} value={code}>{ELEMENT_NAMES[code]}</option>)}</select></label>
-      <button type="button" onClick={load} className={`${button} self-end`}>Ver respuestas</button>
+      <button type="button" onClick={load} disabled={loading} className={`${button} self-end`}>{loading ? "Cargando…" : items ? "Actualizar" : "Ver respuestas"}</button>
     </div>
     {error && <p role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
+    {items && <p className="mt-3 text-sm text-slate-600" aria-live="polite">{items.length === 1 ? "1 respuesta abierta" : `${items.length} respuestas abiertas`} con este filtro.</p>}
     {items && (items.length ? <ul className="mt-4 space-y-3">{items.map(item => <QualitativeItem key={item.id} item={item} busy={busy} save={async data => { const ok = await save({ surveyResponseId: item.id, ...data }, "Revisión guardada."); if (ok) await load(); return ok; }} />)}</ul> : <p className="mt-3 text-sm text-slate-600">No hay respuestas abiertas para este filtro.</p>)}
   </section>;
 }

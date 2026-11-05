@@ -83,6 +83,8 @@ test.describe.serial("Phase 6 results and triangulation", () => {
   test("E2E-P6-05 an open answer is redacted without touching the original", async () => {
     await page.getByRole("button", { name: "Ver respuestas" }).click();
     await expect(page.getByText(`Comentario ficticio con nombre propio ${tag}`)).toBeVisible();
+    await expect(page.getByText("2 respuestas abiertas con este filtro.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Actualizar" })).toBeVisible();
     const item = page.getByRole("listitem").filter({ hasText: `Comentario ficticio con nombre propio ${tag}` });
     await item.getByLabel(/^Estado de la respuesta COL_E01_O01/).selectOption("REDACTED");
     await item.getByLabel(/^Texto redactado COL_E01_O01/).fill("Comentario ficticio con [nombre]");

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 import { CHECKLIST_ITEMS } from "@/domain/closure/checklist";
@@ -34,6 +34,8 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
   const [view, setView] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  // The confirmation toast disappears by itself; errors stay until the next action.
+  useEffect(() => { if (!message || /no se|error|requiere|revisa|falta/i.test(message)) return; const timer = setTimeout(() => setMessage(""), 5000); return () => clearTimeout(timer); }, [message]);
   const [reason, setReason] = useState("");
   async function act(path: string, method: "POST" | "PATCH" | "DELETE", data: unknown, done: string) {
     setBusy(true); setMessage("");

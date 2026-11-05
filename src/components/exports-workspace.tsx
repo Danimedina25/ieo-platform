@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 
@@ -22,6 +22,8 @@ const field = "mt-1 block min-h-11 w-full rounded border px-3";
 export function ExportsWorkspace({ assessmentId, hasRun, records, grants }: { assessmentId: string; hasRun: boolean; records: Record_[]; grants: Grant[] }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
+  // The confirmation toast disappears by itself; errors stay until the next action.
+  useEffect(() => { if (!message || /no se|error|requiere|revisa|falta/i.test(message)) return; const timer = setTimeout(() => setMessage(""), 5000); return () => clearTimeout(timer); }, [message]);
   const [scope, setScope] = useState<Scope>("RAW_RESPONSES"); const [purpose, setPurpose] = useState(""); const [days, setDays] = useState(7);
   const active = new Set(grants.filter(grant => grant.mine && grant.status === "ACTIVE").map(grant => grant.scope));
   async function download(code: string, variant: string) {
