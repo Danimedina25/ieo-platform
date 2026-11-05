@@ -56,7 +56,9 @@ test("login móvil con teclado", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 }); await page.goto("/login");
   await page.getByLabel("Correo", { exact: true }).focus(); await page.keyboard.type("consultor2@ieo.local"); await page.keyboard.press("Tab");
   await expect(page.getByLabel("Contraseña", { exact: true })).toBeFocused();
-  await page.keyboard.type(env.SEED_USER_PASSWORD); await page.keyboard.press("Tab"); await page.keyboard.press("Enter");
+  await page.keyboard.type(env.SEED_USER_PASSWORD); await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Mostrar contraseña" })).toBeFocused();
+  await page.keyboard.press("Tab"); await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/diagnosticos$/);
   await expect(page.getByRole("cell", { name: "Organización Demo B" })).toBeVisible();
 });
@@ -79,4 +81,15 @@ test("E2E-UX-03 the custodian's guide explains approvals", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Tu papel como custodio metodológico" })).toBeVisible();
   await page.getByRole("button", { name: "Saltar guía" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+test("E2E-UX-04 the password can be shown and hidden again", async ({ page }) => {
+  await page.goto("/login");
+  const password = page.getByLabel("Contraseña", { exact: true });
+  await password.fill("secreto-de-prueba");
+  await expect(password).toHaveAttribute("type", "password");
+  await page.getByRole("button", { name: "Mostrar contraseña" }).click();
+  await expect(password).toHaveAttribute("type", "text");
+  await expect(password).toHaveValue("secreto-de-prueba");
+  await page.getByRole("button", { name: "Ocultar contraseña" }).click();
+  await expect(password).toHaveAttribute("type", "password");
 });
