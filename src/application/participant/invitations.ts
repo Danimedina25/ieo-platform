@@ -35,7 +35,7 @@ export async function createInvitation(adminToken: string | undefined, assessmen
   if (!perspective) throw new AccessDeniedError();
   const email = normalizeEmail(data.email);
   const allowlisted = (process.env.TECHNICAL_INVITE_ALLOWED_EMAILS ?? "").split(",").map(value => normalizeEmail(value.trim())).filter(Boolean);
-  if (!email.endsWith(".test") && !email.endsWith("@ieo.local") && !allowlisted.includes(email)) throw new z.ZodError([{ code: "custom", path: ["email"], message: "Sólo correo sintético o del equipo autorizado." }]);
+  if (!email.endsWith(".test") && !email.endsWith("@ieo.local") && !allowlisted.includes(email)) throw new z.ZodError([{ code: "custom", path: ["email"], message: "Mientras el sistema esté en modo de prueba sólo se aceptan correos ficticios (terminados en .test), del equipo (@ieo.local) o autorizados por el administrador técnico." }]);
   const token = randomBearer();
   const invitation = await db().$transaction(async tx => {
     const row = await tx.invitation.create({ data: { assessmentId, assessmentPerspectiveId: perspective.id, emailCiphertext: encryptEmail(email), emailLookupHmac: emailLookupHmac(email), tokenHash: hashBearer(token), expiresAt, createdById: user.id, isTest: true } });

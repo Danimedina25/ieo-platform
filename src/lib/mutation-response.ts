@@ -19,7 +19,11 @@ export async function mutationResponse<T>(request: Request, operation: (input: u
     if (error instanceof UnauthenticatedError) return NextResponse.json({ error: "Sesión requerida." }, { status: 401 });
     if (error instanceof AccessDeniedError) return NextResponse.json({ error: "Recurso no disponible." }, { status: 404 });
     if (error instanceof LifecycleError) return NextResponse.json({ error: error.message }, { status: error.status });
-    if (error instanceof z.ZodError) return NextResponse.json({ error: "Revisa los campos indicados.", fields: error.issues.map(issue => issue.path.join(".")) }, { status: 400 });
+    if (error instanceof z.ZodError) {
+      // Rules written for people (custom issues) say exactly what is wrong; schema defaults stay generic.
+      const explained = error.issues.filter(issue => issue.code === "custom").map(issue => issue.message);
+      return NextResponse.json({ error: explained.length ? explained.join(" ") : "Revisa los campos indicados.", fields: error.issues.map(issue => issue.path.join(".")) }, { status: 400 });
+    }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ error: "Ya existe un registro con esos datos." }, { status: 409 });
     console.error("WORKSPACE_MUTATION_FAILED_INTERNAL");
     return NextResponse.json({ error: "No se pudieron guardar los cambios." }, { status: 500 });
