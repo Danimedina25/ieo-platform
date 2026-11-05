@@ -1,13 +1,15 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PerspectiveCode } from "@/generated/prisma/client";
 import { ConfirmButton } from "./confirm-button";
 type Row = { id: string; email: string; perspectiveCode: PerspectiveCode; status: string; expiresAt: string; sentAt: string | null; verifiedAt: string | null; completedAt: string | null };
 const NAMES: Record<PerspectiveCode, string> = { DIR: "Dirección", ESP: "Especialistas", LID: "Liderazgo", COL: "Colaboradores", CLI: "Voz del Cliente" };
 const STATUS: Record<string, string> = { CREATED: "Pendiente de envío", SENT: "Enviada", VERIFIED: "Ingresó con su código", COMPLETED: "Respondió", CANCELLED: "Cancelada", EXPIRED: "Vencida" };
 export function InvitationsWorkspace({ assessmentId, initial, canInvite }: { assessmentId: string; initial: Row[]; canInvite: boolean }) {
+  const router = useRouter();
   const [rows, setRows] = useState(initial); const [email, setEmail] = useState(""); const [perspectiveCode, setPerspective] = useState<PerspectiveCode>("COL"); const [message, setMessage] = useState(""); const [busy, setBusy] = useState(false);
-  async function refresh() { const response = await fetch(`/api/assessments/${assessmentId}/invitations`, { cache: "no-store" }); if (response.ok) setRows(await response.json()); }
+  async function refresh() { const response = await fetch(`/api/assessments/${assessmentId}/invitations`, { cache: "no-store" }); if (response.ok) setRows(await response.json()); router.refresh(); }
   // In DRAFT the invitation is only created; it is sent when the assessment is opened.
   const sentMessage = (status: string, sent: string) => status === "CREATED" ? "Invitación creada. Se enviará por correo cuando abras la aplicación." : sent;
   async function create(event: React.FormEvent) { event.preventDefault(); setBusy(true); setMessage(""); try { const expiresAt = new Date(Date.now() + 7 * 86400_000).toISOString(); const result = await fetch(`/api/assessments/${assessmentId}/invitations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, perspectiveCode, expiresAt }) }); if (!result.ok) throw new Error((await result.json()).error); const created = await result.json() as { status: string }; setEmail(""); await refresh(); setMessage(sentMessage(created.status, "Invitación enviada por correo.")); } catch (error) { setMessage(error instanceof Error ? error.message : "No se pudo crear la invitación."); } finally { setBusy(false); } }

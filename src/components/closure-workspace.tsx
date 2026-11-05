@@ -64,6 +64,15 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
   const invited = view.participation.reduce((total, row) => total + row.invited, 0);
   const submitted = view.participation.reduce((total, row) => total + row.submitted, 0);
   const applicable = view.perspectives.filter(row => row.applicability === "APPLICABLE").map(row => row.perspectiveCode);
+  const verdictsMissing = 1 + applicable.length - [null, ...applicable].filter(code => view.verdicts.some(row => row.perspectiveCode === code && !row.elementCode)).length;
+  const checklistDone = view.checklist?.length ?? 0;
+  // What the closure documentation still needs, block by block (same rules as freezeAssessment).
+  const blocks = [
+    { id: "cierre-exclusiones", label: "Exclusiones", status: <Badge tone="optional">Opcional · {view.exclusions.length}</Badge> },
+    { id: "cierre-incidencias", label: "Incidencias", status: <Badge tone="optional">Opcional · {view.incidents.length}</Badge> },
+    { id: "cierre-dictamen", label: "Dictamen de calidad", status: verdictsMissing === 0 ? <Badge tone="done">✓ Completo</Badge> : <Badge tone="pending">Faltan {verdictsMissing}</Badge> },
+    { id: "cierre-checklist", label: "Checklist oficial", status: checklistDone === CHECKLIST_ITEMS.length ? <Badge tone="done">✓ Guardado</Badge> : <Badge tone="pending">Pendiente</Badge> },
+  ];
 
   return <div className="space-y-6">
     <section className={card} aria-labelledby="estado">
@@ -90,6 +99,11 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
         </ConfirmButton>
       </form>}
     </section>
+    {view.status !== "DRAFT" && view.status !== "OPEN" && <nav aria-label="Documentación del cierre" className={card}>
+      <h3 className="text-lg font-semibold">Documentación del cierre</h3>
+      <ul className="mt-3 grid gap-2 sm:grid-cols-2">{blocks.map(block => <li key={block.id}><a href={`#${block.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded border px-3 text-sm font-medium hover:bg-slate-50">{block.label}{block.status}</a></li>)}</ul>
+      {closed && <p className="mt-2 text-xs text-slate-500">Para congelar se necesitan el dictamen completo y el checklist guardado. Las exclusiones y las incidencias sólo se registran si las hubo.</p>}
+    </nav>}
     {/* Fixed toast: actions happen far down the page, so the confirmation must be visible wherever the user is. */}
     {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
 
@@ -100,16 +114,16 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
     </section>
 
     {closed && <ExclusionsForm view={view} busy={busy} submit={data => act("exclusions", "POST", data, "Exclusión registrada.")} />}
-    <section className={card}><h3 className="text-lg font-semibold">Exclusiones</h3>
+    <section id="cierre-exclusiones" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Exclusiones</h3>
       {view.exclusions.length ? <ul className="mt-3 space-y-2">{view.exclusions.map(row => <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3 text-sm"><span>{NAMES[row.perspectiveCode]} · {exclusionReasons[row.reasonCode]}: {row.description}{row.invitationId ? ` (${view.submittedInvitations.find(item => item.id === row.invitationId)?.email ?? "invitación"})` : ""}</span>{closed && <button disabled={busy} onClick={() => act(`exclusions/${row.id}`, "DELETE", undefined, "Exclusión revocada.")} className="min-h-11 px-2 text-blue-900 underline">Revocar</button>}</li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin exclusiones.</p>}
     </section>
 
     {closed && <IncidentForm responsible={view.currentUserName} busy={busy} submit={data => act("incidents", "POST", data, "Incidencia registrada.")} />}
-    <section className={card}><h3 className="text-lg font-semibold">Incidencias</h3>
+    <section id="cierre-incidencias" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Incidencias</h3>
       {view.incidents.length ? <ul className="mt-3 space-y-2">{view.incidents.map(row => <li key={row.id} className="rounded border p-3 text-sm"><p className="font-semibold">{row.occurredOn} · {row.perspectiveCode ? NAMES[row.perspectiveCode] : "General"} · {INCIDENT_TYPES[row.incidentType]}{row.impactLevel ? ` · Impacto ${IMPACT_LEVELS[row.impactLevel].label.toLowerCase()}` : ""}</p><p>{row.description}{row.impact ? ` — ${row.impact}` : ""}</p><p className="text-slate-600">Acción: {row.action} · Responsable: {row.responsible}</p></li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin incidencias registradas.</p>}
     </section>
 
-    <section className={card}><h3 className="text-lg font-semibold">Dictamen de calidad</h3>
+    <section id="cierre-dictamen" className={`${card} scroll-mt-4`}><h3 className="flex flex-wrap items-center gap-3 text-lg font-semibold">Dictamen de calidad {blocks[2].status}</h3>
       <p className="mt-1 text-sm text-slate-600">A: válida · B: válida con reservas · C: evidencia insuficiente (sus resultados quedan ND y no entran a la triangulación).</p>
       <div className="mt-3 space-y-3">
         <VerdictRow label="Global" current={view.verdicts.find(row => !row.perspectiveCode)} editable={closed} busy={busy} save={data => act("quality", "POST", { perspectiveCode: null, elementCode: null, ...data }, "Dictamen global guardado.")} />
@@ -199,10 +213,14 @@ function Checklist({ initial, editable, busy, save }: { initial: ClosureView["ch
   const complete = items.every(row => row.answer);
   // Compared with what is stored (initial is refreshed after every save).
   const unchanged = !!initial && items.every(row => { const stored = initial.find(item => item.item === row.item); return stored && stored.answer === row.answer && (stored.observation ?? "") === (row.observation ?? ""); });
-  return <section className={card}><h3 className="text-lg font-semibold">Checklist oficial de aplicación</h3>
+  return <section id="cierre-checklist" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Checklist oficial de aplicación</h3>
     <ol className="mt-3 space-y-3">{CHECKLIST_ITEMS.map((text, index) => <li key={text} className="rounded border p-3"><fieldset disabled={!editable}><legend className="text-sm font-medium">{index + 1}. {text}</legend>
       <div className="mt-2 flex flex-wrap items-center gap-3">{(["YES", "NO", "NA"] as const).map(answer => <label key={answer} className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name={`check-${index}`} checked={items[index].answer === answer} onChange={() => setItems(previous => previous.map((row, position) => position === index ? { ...row, answer } : row))} />{{ YES: "Sí", NO: "No", NA: "N/A" }[answer]}</label>)}
         <input aria-label={`Observación ${index + 1}`} placeholder="Observación (opcional)" value={items[index].observation ?? ""} onChange={event => setItems(previous => previous.map((row, position) => position === index ? { ...row, observation: event.target.value || null } : row))} className="min-h-11 flex-1 rounded border px-3 text-sm" /></div></fieldset></li>)}</ol>
     {editable && <div className="mt-4 flex flex-wrap items-center gap-3"><button disabled={busy || !complete || unchanged} className={button} onClick={() => save(items)}>{unchanged ? "Checklist guardado ✓" : initial ? "Guardar cambios del checklist" : "Guardar checklist"}</button>{!complete && <span className="text-sm text-slate-600">Contesta los 16 puntos para poder guardarlo.</span>}</div>}
   </section>;
+}
+
+function Badge({ tone, children }: { tone: "done" | "pending" | "optional"; children: React.ReactNode }) {
+  return <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold ${tone === "done" ? "bg-green-100 text-green-900" : tone === "pending" ? "bg-amber-100 text-amber-950" : "bg-slate-100 text-slate-700"}`}>{children}</span>;
 }

@@ -49,7 +49,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await expect(page.getByRole("heading", { name: "Estado: Procesado · Revisión 1" })).toBeVisible();
   });
   test("E2E-P6-02 the Global appears together with the matrix and perspective indexes", async () => {
-    await page.getByRole("link", { name: "Resultados" }).click();
+    await page.getByRole("link", { name: "Resultados", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Índice Global IEO" })).toBeVisible();
     await expect(page.getByLabel("Índice Global 62")).toBeVisible();
     await expect(page.getByText("En erosión · Nivel 3")).toBeVisible();
@@ -106,14 +106,14 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await page.getByLabel("Motivo Colaboradores", { exact: true }).fill("Sin riesgo en la prueba.");
     await page.getByRole("button", { name: "Guardar divulgación Colaboradores" }).click();
     await expect(page.getByText(/Colaboradores: Reportable/)).toBeVisible();
-    await page.getByRole("link", { name: "Exportaciones" }).click();
+    await page.getByRole("link", { name: "Exportaciones", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Exportaciones", exact: true })).toBeVisible();
     const metadata = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Descargar EXP04" }).click();
+    await page.getByRole("button", { name: "Descargar metadatos (EXP04)" }).click();
     const metadataFile = zipTextEntries(readFileSync(await (await metadata).path()));
     expect(parseCsv(metadataFile.get("instrumentos.csv")!)).toHaveLength(329);
     const report = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Descargar EXP03" }).first().click();
+    await page.getByRole("button", { name: "Descargar resultados para reporte (EXP03)" }).click();
     const reportFile = zipTextEntries(readFileSync(await (await report).path()));
     const rows = parseCsv(reportFile.get("resultados.csv")!);
     expect(rows.find(row => row.result_type === "IEO_GLOBAL")?.status).toBe("SUPRIMIDO_POR_DIVULGACION");
@@ -121,9 +121,9 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await expect(page.getByText(/EXP03 REPORT · 62 filas/)).toBeVisible();
   });
   test("E2E-P7-02 raw data needs a grant that the custodian approves", async ({ browser }) => {
-    await expect(page.getByRole("button", { name: "Descargar EXP01" })).toBeDisabled();
-    await page.getByLabel("Alcance").selectOption("RAW_RESPONSES");
-    await page.getByLabel("Propósito").fill("Auditoría de reprocesamiento en la prueba E2E.");
+    await expect(page.getByRole("button", { name: "Descargar respuestas crudas (EXP01)" })).toBeDisabled();
+    await page.getByLabel("Datos que necesitas").selectOption("RAW_RESPONSES");
+    await page.getByLabel("Para qué los necesitas").fill("Auditoría de reprocesamiento en la prueba E2E.");
     await page.getByRole("button", { name: "Solicitar permiso" }).click();
     await expect(page.getByText(/Datos crudos \(EXP01\) · Pendiente/)).toBeVisible();
     const custodianContext = await browser.newContext();
@@ -141,7 +141,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await page.reload();
     await expect(page.getByText(/Datos crudos \(EXP01\) · Vigente/)).toBeVisible();
     const raw = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Descargar EXP01" }).click();
+    await page.getByRole("button", { name: "Descargar respuestas crudas (EXP01)" }).click();
     const rawRows = parseCsv(zipTextEntries(readFileSync(await (await raw).path())).get("respuestas_crudas.csv")!);
     expect(rawRows).toHaveLength(2 * 73 + 2 * 75);
     expect(new Set(rawRows.map(row => row.participant)).size).toBe(4);
@@ -150,7 +150,7 @@ test.describe.serial("Phase 6 results and triangulation", () => {
   test("E2E-P7-03 hostile open text is shown as text and never executed", async () => {
     let dialogs = 0;
     page.on("dialog", async dialog => { dialogs++; await dialog.dismiss(); });
-    await page.getByRole("link", { name: "Resultados" }).click();
+    await page.getByRole("link", { name: "Resultados", exact: true }).click();
     await page.getByRole("button", { name: "Ver respuestas" }).click();
     await expect(page.getByText(`<img src=x onerror="alert(1)"><script>alert(2)</script> ${tag}`)).toBeVisible();
     await page.waitForTimeout(300);

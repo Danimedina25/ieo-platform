@@ -10,6 +10,7 @@ import { CHECKLIST_ITEMS, type ChecklistAnswer } from "@/domain/closure/checklis
 import { checklistSchema, exclusionSchema, incidentSchema, qualitySchema, qualityScopeKey, reopenSchema } from "@/domain/closure/schemas";
 import { buildSnapshot, engineInputFromSnapshot, SNAPSHOT_SCHEMA_VERSION, type SnapshotPayload } from "@/domain/closure/snapshot";
 import { buildActa } from "@/domain/closure/acta";
+import type { GuidanceInput } from "@/domain/closure/guidance";
 import { runEngine, ENGINE_VERSION, type EngineOutput } from "@/domain/ieo-engine";
 
 // Phase 5B: lifecycle, closure record, freeze and processing. Only an active IEO_CONSULTANT of the organization acts.
@@ -194,6 +195,33 @@ export async function readClosure(token: string | undefined, assessmentId: strin
       snapshot, runs: runs.map(run => ({ ...run, revisionNumber: run.snapshot.revisionNumber, globalStatus: run.global?.status ?? null })),
     };
   });
+}
+
+/** Inputs for the "next step" card. Read-only (no row lock); only a consultant of the organization sees it. */
+export async function readGuidance(token: string | undefined, assessmentId: string): Promise<GuidanceInput> {
+  const user = await requireAuthenticatedUser(token);
+  if (!z.uuid().safeParse(assessmentId).success) throw new AccessDeniedError();
+  const assessment = await db().assessment.findFirst({
+    where: { id: assessmentId, organization: { status: "ACTIVE", memberships: { some: { userId: user.id, role: "IEO_CONSULTANT", active: true, user: { status: "ACTIVE" } } } } },
+    select: { id: true, status: true, revisionNumber: true, currentRunId: true, perspectives: { select: { perspectiveCode: true, applicability: true } } },
+  });
+  if (!assessment) throw new AccessDeniedError();
+  const revision = { assessmentId, revisionNumber: assessment.revisionNumber };
+  const [invitations, submitted, verdicts, record, run] = await Promise.all([
+    db().invitation.count({ where: { assessmentId, status: { not: "CANCELLED" } } }),
+    db().responseSession.count({ where: { assessmentId, status: "SUBMITTED" } }),
+    db().qualityAssessment.findMany({ where: { ...revision, elementCode: null }, select: { perspectiveCode: true } }),
+    db().closureRecord.findUnique({ where: { assessmentId_revisionNumber: revision }, select: { checklistJson: true } }),
+    assessment.currentRunId ? db().processingRun.findUnique({ where: { id: assessment.currentRunId }, select: { publishable: true, patterns: { distinct: ["elementCode"], select: { elementCode: true } }, disclosureReviews: { distinct: ["perspectiveCode"], select: { perspectiveCode: true } } } }) : null,
+  ]);
+  const judged = new Set(verdicts.map(row => row.perspectiveCode));
+  return {
+    status: assessment.status, perspectives: assessment.perspectives, invitations, submitted,
+    globalVerdict: judged.has(null),
+    missingVerdicts: assessment.perspectives.filter(row => row.applicability === "APPLICABLE" && !judged.has(row.perspectiveCode)).map(row => row.perspectiveCode),
+    checklistComplete: ((record?.checklistJson as ChecklistAnswer[] | null)?.length ?? 0) === CHECKLIST_ITEMS.length,
+    run: run ? { publishable: run.publishable, patterns: run.patterns.length, disclosures: run.disclosureReviews.length } : null,
+  };
 }
 
 // ── Freeze ─────────────────────────────────────────────────────────────────────────────

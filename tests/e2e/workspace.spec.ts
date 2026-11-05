@@ -34,7 +34,7 @@ test.describe.serial("Phase 2 workspace", () => {
     await createFromDialog(page, `E2E existente ${tag}`);
     assessmentUrl = page.url();
     await expect(page.getByRole("heading", { name: `E2E existente ${tag}` })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Perspectivas" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Perspectivas", exact: true })).toBeVisible();
   });
   test("E2E-P2-02 crea nueva organización y diagnóstico", async ({ page }) => {
     await signIn(page);
@@ -105,7 +105,7 @@ test.describe.serial("Phase 2 workspace", () => {
     await signIn(page, "coordinador@ieo.local"); await page.goto(assessmentUrl);
     await expect(page.getByText("Vista de consulta.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Guardar cambios" })).toHaveCount(0);
-    await page.getByRole("link", { name: "Perspectivas" }).click();
+    await page.getByRole("link", { name: "Perspectivas", exact: true }).click();
     await expect(page.getByRole("button", { name: "Agregar segmento" })).toHaveCount(0);
     const id = new URL(assessmentUrl).pathname.split("/").pop();
     const response = await page.request.post(`/api/assessments/${id}/segments`, { headers: { origin: new URL(page.url()).origin }, data: { dimension: "Área", label: "Prohibido", reportabilityStatus: "PENDING", reason: null } });
@@ -120,7 +120,7 @@ test.describe.serial("Phase 2 workspace", () => {
     await page.setViewportSize({ width: 768, height: 1024 }); await signIn(page); await page.goto(assessmentUrl);
     await expect(page.getByRole("heading", { name: "Información general" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-    await page.getByRole("link", { name: "Perspectivas" }).click();
+    await page.getByRole("link", { name: "Perspectivas", exact: true }).click();
     await expect(page.getByText("Cinco perspectivas")).toBeVisible();
   });
 });

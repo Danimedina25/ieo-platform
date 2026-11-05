@@ -55,6 +55,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
     await context.addCookies(adminCookies);
     await closureTab();
     await page.getByRole("button", { name: "Cerrar aplicación" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, cerrar aplicación" }).click();
+    await expect(page.getByRole("heading", { name: "Documenta el cierre" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Estado: Cerrado · Revisión 1" })).toBeVisible();
     await expect(page.getByRole("row").filter({ hasText: "Colaboradores" })).toContainText("1");
     const incident = page.locator("form").filter({ has: page.getByRole("heading", { name: "Registrar incidencia" }) });

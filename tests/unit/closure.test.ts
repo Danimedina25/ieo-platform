@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { nextStep } from "@/domain/closure/guidance";
 import { acceptsResponses, canPerform } from "@/domain/closure/lifecycle";
 import { buildSnapshot, engineInputFromSnapshot, type SnapshotSource } from "@/domain/closure/snapshot";
 import { checklistSchema, exclusionSchema, incidentSchema, qualitySchema, qualityScopeKey } from "@/domain/closure/schemas";
@@ -102,5 +103,28 @@ describe("detailed ND reason for readers", () => {
     expect(detailedReason(output, "DIR", "E07", "NO_VALID_PI")).toBe("NO_VALID_PI");
     expect(detailedReason(output, "LID", "E01", "NO_VALID_PI")).toBe("NO_SESSIONS");
     expect(detailedReason(output, "COL", "E08", "QUALITY_C")).toBe("QUALITY_C");
+  });
+});
+
+describe("next step guidance", () => {
+  const all = (applicability: string | null) => (["DIR", "ESP", "LID", "COL", "CLI"] as const).map(perspectiveCode => ({ perspectiveCode, applicability }));
+  const base = { status: "DRAFT" as const, perspectives: all("APPLICABLE"), invitations: 3, submitted: 0, globalVerdict: false, missingVerdicts: [], checklistComplete: false, run: null };
+  it("in DRAFT asks to classify perspectives and invite before opening", () => {
+    const step = nextStep({ ...base, perspectives: all(null), invitations: 0 });
+    expect(step.title).toBe("Prepara el diagnóstico");
+    expect(step.pending).toEqual(["Clasifica las cinco perspectivas (faltan 5).", "Agrega a los participantes en la pestaña Participantes."]);
+    expect(step.tab).toBe("perspectivas");
+    expect(nextStep({ ...base, perspectives: all("NOT_APPLICABLE") }).pending).toEqual(["Marca al menos una perspectiva como aplicable."]);
+    expect(nextStep(base)).toMatchObject({ title: "Abre la aplicación", tab: "cierre", pending: [] });
+  });
+  it("in CLOSED lists the verdicts and checklist that block freezing", () => {
+    const step = nextStep({ ...base, status: "CLOSED", missingVerdicts: ["DIR", "COL"] });
+    expect(step.pending).toEqual(["Registra el dictamen de calidad global.", "Registra el dictamen de calidad de: Dirección, Colaboradores.", "Contesta y guarda el checklist oficial de 16 puntos."]);
+    expect(nextStep({ ...base, status: "CLOSED", globalVerdict: true, checklistComplete: true }).title).toBe("Congela los datos");
+  });
+  it("after processing asks for patterns and disclosure, then points to exports", () => {
+    expect(nextStep({ ...base, status: "PROCESSED", run: { publishable: true, patterns: 7, disclosures: 3 } }).pending).toEqual(["Registra el patrón de triangulación de 1 Elemento.", "Revisa qué se puede reportar en 2 perspectivas."]);
+    expect(nextStep({ ...base, status: "PROCESSED", run: { publishable: true, patterns: 8, disclosures: 5 } }).tab).toBe("exportaciones");
+    expect(nextStep({ ...base, status: "PROCESSED", run: { publishable: false, patterns: 0, disclosures: 0 } }).title).toBe("Resultados no publicables");
   });
 });
