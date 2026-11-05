@@ -65,8 +65,9 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
         <label className="text-sm font-medium">Motivo de reapertura<input required value={reason} onChange={event => setReason(event.target.value)} className={field} /></label>
         <button disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold">Reabrir</button>
       </form>}
-      {message && <p role="status" className="mt-3 text-sm">{message}</p>}
     </section>
+    {/* Fixed toast: actions happen far down the page, so the confirmation must be visible wherever the user is. */}
+    {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
 
     <section className={card}><h3 className="text-lg font-semibold">Participación</h3>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b"><th className="p-2">Perspectiva</th><th className="p-2">Clasificación</th><th className="p-2">Invitados</th><th className="p-2">Enviados</th><th className="p-2">Borradores</th><th className="p-2">Excluidos</th></tr></thead>

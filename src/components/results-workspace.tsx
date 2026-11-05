@@ -86,7 +86,7 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
       {view.verdicts.some(row => row.reservations) && <div className="mt-3 text-sm"><h4 className="font-semibold">Reservas del dictamen de calidad</h4><ul className="mt-1 list-disc pl-5">{view.verdicts.filter(row => row.reservations).map(row => <li key={`${row.perspectiveCode}-${row.elementCode}`}>{row.perspectiveCode ? PERSPECTIVE_NAMES[row.perspectiveCode] : "Global"}{row.elementCode ? ` · ${ELEMENT_NAMES[row.elementCode as Element]}` : ""} ({row.verdict}): {row.reservations}</li>)}</ul></div>}
     </section>
 
-    {message && <p role="status" className="text-sm">{message}</p>}
+    {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
     <section className={card}><h3 className="text-lg font-semibold">Patrones de triangulación</h3>
       <p className="mt-1 text-sm text-slate-600">El consultor registra el patrón con su justificación. El sistema no asigna patrones ni infiere causas.</p>
       <div className="mt-3 space-y-3">{ELEMENTS.map(element => <PatternRow key={element} element={element} current={view.patterns.find(row => row.elementCode === element)} busy={busy} save={data => save("patterns", { elementCode: element, ...data }, `Patrón de ${ELEMENT_NAMES[element]} registrado.`)} />)}</div>

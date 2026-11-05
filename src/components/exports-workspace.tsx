@@ -50,7 +50,7 @@ export function ExportsWorkspace({ assessmentId, hasRun, records, grants }: { as
         {item.scope && <p className="mt-1 text-xs text-slate-500">Requiere permiso: {SCOPE_LABELS[item.scope]} — {active.has(item.scope) ? "vigente" : "sin permiso vigente"}</p>}
         <button disabled={busy || !hasRun || (!!item.scope && !active.has(item.scope))} onClick={() => download(item.code, item.variant)} className="mt-2 min-h-11 rounded bg-blue-900 px-4 font-semibold text-white disabled:opacity-50">Descargar {item.code}</button>
       </li>)}</ul>
-      {message && <p role="status" className="mt-3 text-sm">{message}</p>}
+      {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
     </section>
     <section className={card}><h3 className="text-lg font-semibold">Permisos excepcionales</h3>
       <p className="mt-1 text-sm text-slate-600">Los datos individuales requieren la aprobación del custodio metodológico. Nadie aprueba su propia solicitud. Vigencia máxima: 30 días.</p>
