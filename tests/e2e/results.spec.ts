@@ -65,6 +65,14 @@ test.describe.serial("Phase 6 results and triangulation", () => {
     await expect(matrix.getByRole("row", { name: /Índice por perspectiva/ })).toContainText("75");
     await expect(page.getByText("PRUEBA — datos ficticios. No constituye un diagnóstico IEO® oficial.")).toBeVisible();
   });
+  test("E2E-UX-01 a help button explains the gap in plain words and closes with Escape", async () => {
+    const explanation = page.getByText(/Mide desacuerdo, no salud/);
+    await expect(explanation).toBeHidden();
+    await page.getByRole("button", { name: "Ayuda: Brecha de triangulación (BT)" }).click();
+    await expect(explanation).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(explanation).toBeHidden();
+  });
   test("E2E-P6-03 the consultant registers a triangulation pattern", async () => {
     await page.getByLabel("Patrón Valor Diferenciador", { exact: true }).selectOption("PERCEPTION_GAP");
     await page.getByLabel("Justificación Valor Diferenciador", { exact: true }).fill("Dirección 75 frente a Colaboradores 50.");

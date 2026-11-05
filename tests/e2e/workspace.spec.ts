@@ -46,7 +46,7 @@ test.describe.serial("Phase 2 workspace", () => {
     await page.getByLabel("Objetivo", { exact: true }).fill(`Objetivo E2E ${tag}`);
     await page.getByLabel("Sponsor", { exact: true }).fill("Sponsor sintético");
     await page.getByLabel("Zona horaria IANA").fill("America/Cancun");
-    await page.getByLabel("Apertura prevista (UTC)").fill("2026-10-01T12:00");
+    await page.getByLabel("Apertura prevista (UTC)", { exact: true }).fill("2026-10-01T12:00");
     await page.getByLabel("Cierre previsto (UTC)").fill("2026-10-02T12:00");
     await page.getByLabel("Coordinador", { exact: true }).selectOption({ label: "Coordinador demo A" });
     await page.getByRole("button", { name: "Guardar cambios" }).click();
@@ -65,7 +65,7 @@ test.describe.serial("Phase 2 workspace", () => {
     await signIn(page); await page.goto(assessmentUrl.replace("tab=general", "tab=perspectivas"));
     await page.getByRole("button", { name: "Configurar Dirección" }).click();
     await page.getByLabel("Estado", { exact: true }).selectOption("APPLICABLE");
-    await page.getByLabel("Población estimada").fill("14");
+    await page.getByLabel("Población estimada", { exact: true }).fill("14");
     await page.getByLabel("Plan", { exact: true }).selectOption("CENSUS");
     await page.getByRole("dialog", { name: "Configurar Dirección" }).getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByText("1 de 5 configuradas")).toBeVisible();
@@ -74,11 +74,11 @@ test.describe.serial("Phase 2 workspace", () => {
   test("E2E-P2-05 CLI permite B2B; DIR no muestra unidad cliente", async ({ page }) => {
     await signIn(page); await page.goto(assessmentUrl.replace("tab=general", "tab=perspectivas"));
     await page.getByRole("button", { name: "Editar Dirección" }).click();
-    await expect(page.getByLabel("Unidad de cliente")).toHaveCount(0);
+    await expect(page.getByLabel("Unidad de cliente", { exact: true })).toHaveCount(0);
     await page.getByRole("dialog", { name: "Configurar Dirección" }).getByRole("button", { name: "Cancelar" }).click();
     await page.getByRole("button", { name: "Configurar Voz del Cliente" }).click();
     await page.getByLabel("Estado", { exact: true }).selectOption("APPLICABLE");
-    await page.getByLabel("Unidad de cliente").selectOption("B2B");
+    await page.getByLabel("Unidad de cliente", { exact: true }).selectOption("B2B");
     await page.getByRole("dialog", { name: "Configurar Voz del Cliente" }).getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByRole("status")).toHaveText("Perspectiva guardada");
     await page.reload(); await expect(page.getByText(/Unidad: B2B/)).toBeVisible();
@@ -86,7 +86,7 @@ test.describe.serial("Phase 2 workspace", () => {
   test("E2E-P2-06 agrega segmento", async ({ page }) => {
     await signIn(page); await page.goto(assessmentUrl.replace("tab=general", "tab=perspectivas"));
     await page.getByRole("button", { name: "Agregar segmento" }).click();
-    await page.getByLabel("Dimensión").fill("Área");
+    await page.getByLabel("Dimensión", { exact: true }).fill("Área");
     await page.getByLabel("Nombre / etiqueta").fill(`Ventas ${tag}`);
     await page.getByRole("dialog", { name: "Agregar segmento" }).getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByRole("status")).toHaveText("Segmento agregado");
@@ -95,7 +95,7 @@ test.describe.serial("Phase 2 workspace", () => {
   test("E2E-P2-07 marca segmento no reportable", async ({ page }) => {
     await signIn(page); await page.goto(assessmentUrl.replace("tab=general", "tab=perspectivas"));
     await page.getByRole("row").filter({ hasText: `Ventas ${tag}` }).getByRole("button", { name: "Editar" }).click();
-    await page.getByLabel("Reportabilidad").selectOption("NOT_REPORTABLE");
+    await page.getByLabel("Reportabilidad", { exact: true }).selectOption("NOT_REPORTABLE");
     await page.getByLabel("Motivo / observaciones").fill("Segmento singular");
     await page.getByRole("dialog", { name: "Editar segmento" }).getByRole("button", { name: "Guardar cambios" }).click();
     await expect(page.getByRole("status")).toHaveText("Segmento guardado");

@@ -100,7 +100,7 @@ test.describe.serial("Phase 5B closure and processing", () => {
   });
   test("E2E-P5B-05 reopening with a reason starts revision 2", async () => {
     await page.getByLabel("Motivo de reapertura").fill("Se detectó una incidencia de prueba.");
-    await page.getByRole("button", { name: "Reabrir" }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, reabrir" }).click();
+    await page.getByRole("button", { name: "Reabrir", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Sí, reabrir" }).click();
     await expect(page.getByRole("heading", { name: "Estado: Abierto · Revisión 2" })).toBeVisible();
     await expect(page.getByText(/Revisión 1 · Exitoso/)).toBeVisible();
   });

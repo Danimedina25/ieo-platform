@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { HelpTip } from "./help-tip";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 
@@ -47,14 +48,14 @@ export function ExportsWorkspace({ assessmentId, hasRun, records, grants }: { as
     <section className={card}><h3 className="text-lg font-semibold">Exportaciones</h3>
       <p className="mt-1 text-sm text-slate-600">Cada descarga es un archivo ZIP con tablas CSV (se abren en Excel) y un manifiesto con sus huellas digitales. Se genera al momento desde el procesamiento vigente y queda registrada en el historial.</p>
       {!hasRun && <p className="mt-3 text-sm text-amber-900">Todavía no hay un procesamiento exitoso.</p>}
-      <h4 className="mt-5 font-semibold">Para tu reporte</h4>
+      <div className="mt-5 flex items-center gap-2"><h4 className="font-semibold">Para tu reporte</h4><HelpTip term="exportsReport" /></div>
       <p className="text-sm text-slate-600">Datos agregados, sin información individual. Se descargan libremente.</p>
       <ul className="mt-3 grid gap-3 sm:grid-cols-3">{EXPORTS.filter(item => !item.scope).map(item => <li key={`${item.code}-${item.variant}`} className="flex flex-col rounded border p-3">
         <p className="font-semibold">{item.label}</p><p className="mt-1 flex-1 text-sm text-slate-600">{item.description}</p>
         <button disabled={busy || !hasRun} onClick={() => download(item.code, item.variant)} className="mt-3 min-h-11 rounded bg-blue-900 px-4 text-left font-semibold text-white disabled:opacity-50">{item.button}</button>
       </li>)}</ul>
-      <h4 className="mt-6 font-semibold">Datos individuales · requieren permiso del custodio</h4>
-      <p className="text-sm text-slate-600">Contienen información por participante (con seudónimo). Sólo se descargan con un permiso vigente; solícitalo en la sección de abajo.</p>
+      <div className="mt-6 flex items-center gap-2"><h4 className="font-semibold">Datos individuales · requieren permiso del custodio</h4><HelpTip term="exportsIndividual" /></div>
+      <p className="text-sm text-slate-600"><span className="inline-flex items-center gap-1">Contienen información por participante (con seudónimo <HelpTip term="pseudonym" />).</span> Sólo se descargan con un permiso vigente; solícitalo en la sección de abajo.</p>
       <ul className="mt-3 grid gap-3 sm:grid-cols-3">{EXPORTS.filter(item => item.scope).map(item => { const allowed = active.has(item.scope!); return <li key={`${item.code}-${item.variant}`} className={`flex flex-col rounded border p-3 ${allowed ? "" : "border-dashed bg-slate-50"}`}>
         <p className="font-semibold">{allowed ? "" : <span aria-hidden="true">🔒 </span>}{item.label}</p><p className="mt-1 flex-1 text-sm text-slate-600">{item.description}</p>
         <p className={`mt-2 text-xs font-semibold ${allowed ? "text-green-800" : "text-slate-600"}`}>{allowed ? "Permiso vigente" : "Sin permiso vigente"}</p>
@@ -62,7 +63,7 @@ export function ExportsWorkspace({ assessmentId, hasRun, records, grants }: { as
       </li>; })}</ul>
       {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
     </section>
-    <section className={card}><h3 className="text-lg font-semibold">Permisos excepcionales</h3>
+    <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Permisos excepcionales</h3><HelpTip term="grant" /></div>
       <p className="mt-1 text-sm text-slate-600">Los datos individuales requieren la aprobación del custodio metodológico. Nadie aprueba su propia solicitud. Vigencia máxima: 30 días.</p>
       <form className="mt-3 grid gap-3 sm:grid-cols-[1fr_2fr_9rem_auto]" onSubmit={async event => { event.preventDefault(); if (await grantAction(`/api/assessments/${assessmentId}/grants`, { scope, purpose, days }, "Solicitud enviada al custodio.")) setPurpose(""); }}>
         <label className="text-sm font-medium">Datos que necesitas<select value={scope} onChange={event => setScope(event.target.value as Scope)} className={field}>{Object.entries(SCOPE_LABELS).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>

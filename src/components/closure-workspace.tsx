@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { HelpTip } from "./help-tip";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 import { ConfirmButton } from "./confirm-button";
@@ -92,6 +93,7 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
         {view.status === "PROCESSED" && <button disabled={busy} className={button} onClick={() => lifecycle("process", "Reprocesamiento terminado.")}>Reprocesar</button>}
       </div>
       {["CLOSED", "FROZEN", "PROCESSED"].includes(view.status) && <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]" onSubmit={event => event.preventDefault()}>
+        <p className="flex items-center gap-2 text-sm text-slate-600 sm:col-span-2">Si necesitas corregir algo, puedes reabrir el diagnóstico en una revisión nueva. <HelpTip term="reopen" /></p>
         <label className="text-sm font-medium">Motivo de reapertura<input required value={reason} onChange={event => setReason(event.target.value)} className={field} /></label>
         <ConfirmButton type="submit" label="Reabrir" title="¿Reabrir el diagnóstico?" confirmLabel="Sí, reabrir" disabled={busy} className="min-h-11 self-end rounded border px-4 font-semibold" onConfirm={async () => { if (await lifecycle("reopen", "Diagnóstico reabierto en una revisión nueva.", { reason })) setReason(""); }}>
           <p>Se crea la revisión {view.revisionNumber + 1} y el diagnóstico vuelve a estado Abierto para recibir respuestas.</p>
@@ -107,23 +109,23 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
     {/* Fixed toast: actions happen far down the page, so the confirmation must be visible wherever the user is. */}
     {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
 
-    <section className={card}><h3 className="text-lg font-semibold">Participación</h3>
+    <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Participación</h3><HelpTip term="participation" /></div>
       <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b"><th className="p-2">Perspectiva</th><th className="p-2">Clasificación</th><th className="p-2">Invitados</th><th className="p-2">Enviados</th><th className="p-2">Borradores</th><th className="p-2">Excluidos</th></tr></thead>
         <tbody>{view.participation.map(row => <tr key={row.perspectiveCode} className="border-b last:border-0"><td className="p-2">{NAMES[row.perspectiveCode]}</td><td className="p-2">{row.applicability ? APPLICABILITY[row.applicability] : "Sin clasificar"}</td><td className="p-2">{row.invited}</td><td className="p-2">{row.submitted}</td><td className="p-2">{row.drafts}</td><td className="p-2">{row.excluded}</td></tr>)}</tbody></table></div>
       <p className="mt-2 text-xs text-slate-500">Los borradores se conservan pero no entran al cálculo.</p>
     </section>
 
     {closed && <ExclusionsForm view={view} busy={busy} submit={data => act("exclusions", "POST", data, "Exclusión registrada.")} />}
-    <section id="cierre-exclusiones" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Exclusiones</h3>
+    <section id="cierre-exclusiones" className={`${card} scroll-mt-4`}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Exclusiones</h3><HelpTip term="exclusion" /></div>
       {view.exclusions.length ? <ul className="mt-3 space-y-2">{view.exclusions.map(row => <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 rounded border p-3 text-sm"><span>{NAMES[row.perspectiveCode]} · {exclusionReasons[row.reasonCode]}: {row.description}{row.invitationId ? ` (${view.submittedInvitations.find(item => item.id === row.invitationId)?.email ?? "invitación"})` : ""}</span>{closed && <button disabled={busy} onClick={() => act(`exclusions/${row.id}`, "DELETE", undefined, "Exclusión revocada.")} className="min-h-11 px-2 text-blue-900 underline">Revocar</button>}</li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin exclusiones.</p>}
     </section>
 
     {closed && <IncidentForm responsible={view.currentUserName} busy={busy} submit={data => act("incidents", "POST", data, "Incidencia registrada.")} />}
-    <section id="cierre-incidencias" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Incidencias</h3>
+    <section id="cierre-incidencias" className={`${card} scroll-mt-4`}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Incidencias</h3><HelpTip term="incident" /></div>
       {view.incidents.length ? <ul className="mt-3 space-y-2">{view.incidents.map(row => <li key={row.id} className="rounded border p-3 text-sm"><p className="font-semibold">{row.occurredOn} · {row.perspectiveCode ? NAMES[row.perspectiveCode] : "General"} · {INCIDENT_TYPES[row.incidentType]}{row.impactLevel ? ` · Impacto ${IMPACT_LEVELS[row.impactLevel].label.toLowerCase()}` : ""}</p><p>{row.description}{row.impact ? ` — ${row.impact}` : ""}</p><p className="text-slate-600">Acción: {row.action} · Responsable: {row.responsible}</p></li>)}</ul> : <p className="mt-2 text-sm text-slate-600">Sin incidencias registradas.</p>}
     </section>
 
-    <section id="cierre-dictamen" className={`${card} scroll-mt-4`}><h3 className="flex flex-wrap items-center gap-3 text-lg font-semibold">Dictamen de calidad {blocks[2].status}</h3>
+    <section id="cierre-dictamen" className={`${card} scroll-mt-4`}><div className="flex flex-wrap items-center gap-2"><h3 className="text-lg font-semibold">Dictamen de calidad</h3><HelpTip term="verdict" />{blocks[2].status}</div>
       <p className="mt-1 text-sm text-slate-600">A: válida · B: válida con reservas · C: evidencia insuficiente (sus resultados quedan ND y no entran a la triangulación).</p>
       <div className="mt-3 space-y-3">
         <VerdictRow label="Global" current={view.verdicts.find(row => !row.perspectiveCode)} editable={closed} busy={busy} save={data => act("quality", "POST", { perspectiveCode: null, elementCode: null, ...data }, "Dictamen global guardado.")} />
@@ -134,7 +136,7 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
 
     <Checklist initial={view.checklist} editable={closed} busy={busy} save={items => act("checklist", "PATCH", { items }, "Checklist guardado.")} />
 
-    {closed && <section className={card}><h3 className="text-lg font-semibold">Congelar y autorizar procesamiento</h3>
+    {closed && <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Congelar y autorizar procesamiento</h3><HelpTip term="freeze" /></div>
       <p className="mt-2 text-sm text-slate-600">Genera el acta oficial y una copia inmutable de los datos (sin identidad, sin borradores ni excluidos). Después ya no se podrán registrar exclusiones ni dictámenes en esta revisión.</p>
       <div className="mt-3"><ConfirmButton label="Congelar y autorizar procesamiento" title="¿Congelar los datos?" confirmLabel="Sí, congelar" disabled={busy} className={button} onConfirm={() => lifecycle("freeze", "Datos congelados y procesamiento autorizado.")}>
         <p>Se genera el Acta Oficial de Cierre y una copia de los datos que ya no puede cambiar.</p>
@@ -142,18 +144,18 @@ export function ClosureWorkspace({ assessmentId, initial }: { assessmentId: stri
       </ConfirmButton></div>
     </section>}
 
-    {view.acta && <section className={card}><h3 className="text-lg font-semibold">Acta Oficial de Cierre</h3>
+    {view.acta && <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Acta Oficial de Cierre</h3><HelpTip term="acta" /></div>
       <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[16rem_1fr]">
         {ACTA_FIELDS.map(([key, label]) => <div key={key} className="contents"><dt className="font-semibold">{label}</dt><dd>{actaValue(key, view.acta![key])}</dd></div>)}
       </dl>
       <details className="mt-3 text-xs text-slate-500"><summary className="cursor-pointer font-semibold">Datos de verificación</summary>
-        <p className="mt-2">Huellas digitales que permiten comprobar que el acta y los datos congelados no han cambiado.</p>
+        <p className="mt-2 flex items-center gap-2">Huellas digitales que permiten comprobar que el acta y los datos congelados no han cambiado. <HelpTip term="fingerprint" /></p>
         <p className="mt-1 break-all">Huella del acta: {view.actaHash}</p>
         <p className="mt-1 break-all">Huella de la copia congelada: {view.snapshot?.sha256}</p>
       </details>
     </section>}
 
-    {view.runs.length > 0 && <section className={card}><h3 className="text-lg font-semibold">Procesamientos</h3>
+    {view.runs.length > 0 && <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Procesamientos</h3><HelpTip term="processing" /></div>
       <ul className="mt-3 space-y-2">{view.runs.map(run => <li key={run.id} className="rounded border p-3 text-sm"><p className="font-semibold">{new Date(run.requestedAt).toLocaleString("es-MX")} · Revisión {run.revisionNumber} · {run.status === "SUCCEEDED" ? "Exitoso" : "Fallido"}{run.id === view.currentRunId ? " · vigente" : ""}{run.status === "SUCCEEDED" ? (run.publishable ? " · publicable" : " · no publicable (dictamen C global)") : ""}</p>
         <p className="break-all text-xs text-slate-500">Motor {run.engineVersion} · Índice Global: {run.globalStatus ? GLOBAL_STATUS[run.globalStatus] ?? run.globalStatus : "—"} · huella de entrada {run.inputHash ?? "—"} · huella de salida {run.outputHash ?? "—"}{run.errorMessage ? ` · ${run.errorMessage}` : ""}</p></li>)}</ul>
       <p className="mt-2 text-xs text-slate-500">Consulta los resultados en la pestaña Resultados.</p>
@@ -166,7 +168,7 @@ function ExclusionsForm({ view, busy, submit }: { view: ClosureView; busy: boole
   const options = view.submittedInvitations.filter(row => !excluded.has(row.id));
   const [invitationId, setInvitation] = useState(""); const [reasonCode, setReason] = useState("DUPLICATE"); const [description, setDescription] = useState("");
   return <form className={`${card} grid gap-3 sm:grid-cols-3`} onSubmit={async event => { event.preventDefault(); if (await submit({ invitationId, reasonCode, description })) { setInvitation(""); setDescription(""); } }}>
-    <h3 className="text-lg font-semibold sm:col-span-3">Excluir un cuestionario enviado</h3>
+    <div className="flex items-center gap-2 sm:col-span-3"><h3 className="text-lg font-semibold">Excluir un cuestionario enviado</h3><HelpTip term="exclusion" /></div>
     <label className="text-sm font-medium">Cuestionario<select required value={invitationId} onChange={event => setInvitation(event.target.value)} className={field}><option value="">Selecciona…</option>{options.map(row => <option key={row.id} value={row.id}>{NAMES[row.perspectiveCode]} · {row.email}</option>)}</select></label>
     <label className="text-sm font-medium">Motivo<select value={reasonCode} onChange={event => setReason(event.target.value)} className={field}>{Object.entries(exclusionReasons).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
     <label className="text-sm font-medium">Descripción<input required value={description} onChange={event => setDescription(event.target.value)} className={field} /></label>
@@ -180,7 +182,7 @@ function IncidentForm({ responsible, busy, submit }: { responsible: string; busy
   const set = (key: keyof typeof empty) => (event: { target: { value: string } }) => setForm(previous => ({ ...previous, [key]: event.target.value }));
   const suggestions = form.incidentType ? SUGGESTED_ACTIONS[form.incidentType] : [];
   return <form className={`${card} grid gap-3 sm:grid-cols-2`} onSubmit={async event => { event.preventDefault(); if (await submit({ ...form, perspectiveCode: form.perspectiveCode || null, impact: form.impact.trim() || null })) setForm(empty); }}>
-    <h3 className="text-lg font-semibold sm:col-span-2">Registrar incidencia</h3>
+    <div className="flex items-center gap-2 sm:col-span-2"><h3 className="text-lg font-semibold">Registrar incidencia</h3><HelpTip term="incident" /></div>
     <label className="text-sm font-medium">Fecha<input type="date" required value={form.occurredOn} onChange={set("occurredOn")} className={field} /></label>
     <label className="text-sm font-medium">Perspectiva<select value={form.perspectiveCode} onChange={set("perspectiveCode")} className={field}><option value="">General</option>{Object.entries(NAMES).map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
     <label className="text-sm font-medium">Tipo de incidencia<select aria-label="Tipo de incidencia" required value={form.incidentType} onChange={event => setForm(previous => ({ ...previous, incidentType: event.target.value as IncidentType, action: "" }))} className={field}><option value="">Selecciona…</option>{Object.entries(INCIDENT_TYPES).map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label>
@@ -213,7 +215,7 @@ function Checklist({ initial, editable, busy, save }: { initial: ClosureView["ch
   const complete = items.every(row => row.answer);
   // Compared with what is stored (initial is refreshed after every save).
   const unchanged = !!initial && items.every(row => { const stored = initial.find(item => item.item === row.item); return stored && stored.answer === row.answer && (stored.observation ?? "") === (row.observation ?? ""); });
-  return <section id="cierre-checklist" className={`${card} scroll-mt-4`}><h3 className="text-lg font-semibold">Checklist oficial de aplicación</h3>
+  return <section id="cierre-checklist" className={`${card} scroll-mt-4`}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Checklist oficial de aplicación</h3><HelpTip term="checklist" /></div>
     <ol className="mt-3 space-y-3">{CHECKLIST_ITEMS.map((text, index) => <li key={text} className="rounded border p-3"><fieldset disabled={!editable}><legend className="text-sm font-medium">{index + 1}. {text}</legend>
       <div className="mt-2 flex flex-wrap items-center gap-3">{(["YES", "NO", "NA"] as const).map(answer => <label key={answer} className="flex min-h-11 items-center gap-2 text-sm"><input type="radio" name={`check-${index}`} checked={items[index].answer === answer} onChange={() => setItems(previous => previous.map((row, position) => position === index ? { ...row, answer } : row))} />{{ YES: "Sí", NO: "No", NA: "N/A" }[answer]}</label>)}
         <input aria-label={`Observación ${index + 1}`} placeholder="Observación (opcional)" value={items[index].observation ?? ""} onChange={event => setItems(previous => previous.map((row, position) => position === index ? { ...row, observation: event.target.value || null } : row))} className="min-h-11 flex-1 rounded border px-3 text-sm" /></div></fieldset></li>)}</ol>

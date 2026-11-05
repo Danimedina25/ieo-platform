@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { HelpTip } from "./help-tip";
 import { useRouter } from "next/navigation";
 import { workspaceRequest } from "./workspace-api";
 import { ELEMENT_NAMES, GAP_CLASS_LABELS, HEALTH_LABELS, LIGHT_LABELS, PATTERN_LABELS, PERSPECTIVE_NAMES, QUALITATIVE_LABELS, REASON_LABELS, integer, oneDecimal } from "@/domain/results/format";
@@ -60,10 +61,10 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
     </section>
 
     <section className={card} aria-labelledby="global">
-      <h3 id="global" className="text-lg font-semibold">Índice Global IEO</h3>
+      <div className="flex items-center gap-2"><h3 id="global" className="text-lg font-semibold">Índice Global IEO</h3><HelpTip term="global" /></div>
       {global.status === "ND" ? <p className="mt-2 text-slate-700">No disponible: {REASON_LABELS[global.reason ?? ""] ?? global.reason}.</p> : <div className="mt-3 flex flex-wrap items-center gap-4">
         <p className="text-5xl font-bold" aria-label={`Índice Global ${global.displayScore}`}>{global.displayScore}</p>
-        <div><p className="text-lg font-semibold">{global.healthLabel} · Nivel {global.healthLevel}</p>
+        <div><p className="flex items-center gap-2 text-lg font-semibold">{global.healthLabel} · Nivel {global.healthLevel} <HelpTip term="healthLevel" /></p>
           <p className={`mt-1 inline-block rounded px-2 py-0.5 text-sm font-semibold ${LIGHT_CLASS[global.trafficLight ?? ""]}`}>Semáforo: {LIGHT_LABELS[global.trafficLight ?? ""]}</p></div>
         {global.status === "LIMITED" && <p className="w-full text-sm text-amber-900">Resultado limitado: {global.limitedElements.map(code => ELEMENT_NAMES[code]).join(", ")} {global.limitedElements.length === 1 ? "tiene" : "tienen"} una sola perspectiva válida.</p>}
       </div>}
@@ -72,8 +73,8 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
 
     <section className={card}>
       <div className="overflow-x-auto"><table className="w-full min-w-[56rem] text-left text-sm">
-        <caption className="mb-3 text-left text-lg font-semibold text-slate-900">Matriz de triangulación</caption>
-        <thead><tr className="border-b"><th scope="col" className="p-2">Elemento</th>{PERSPECTIVES.map(code => <th key={code} scope="col" className="p-2">{PERSPECTIVE_NAMES[code]}</th>)}<th scope="col" className="p-2">Resultado integrado (RI)</th><th scope="col" className="p-2">Brecha (BT)</th></tr></thead>
+        <caption className="mb-3 text-left text-lg font-semibold text-slate-900"><span className="inline-flex items-center gap-2">Matriz de triangulación <HelpTip term="matrix" /></span></caption>
+        <thead><tr className="border-b"><th scope="col" className="p-2">Elemento</th>{PERSPECTIVES.map(code => <th key={code} scope="col" className="p-2">{PERSPECTIVE_NAMES[code]}</th>)}<th scope="col" className="p-2"><span className="inline-flex items-center gap-2">Resultado integrado (RI) <HelpTip term="ri" /></span></th><th scope="col" className="p-2"><span className="inline-flex items-center gap-2">Brecha (BT) <HelpTip term="bt" /></span></th></tr></thead>
         <tbody>{ELEMENTS.map(element => {
           const row = view.elements.find(item => item.elementCode === element)!;
           return <tr key={element} className="border-b align-top">
@@ -83,19 +84,20 @@ export function ResultsWorkspace({ assessmentId, view }: { assessmentId: string;
             <td className="p-2">{row.btStatus === "NOT_CALCULABLE" ? <span className="text-xs text-slate-600">No calculable</span> : <><span className="font-semibold">{row.btDisplay}</span><span className="block text-xs text-slate-500">{GAP_CLASS_LABELS[row.btClass ?? ""]} · {row.btStatus === "PARTIAL" ? "parcial" : "integrada"}</span><span className="block text-xs text-slate-500">Más alto: {names(row.maxPerspectives)} · Más bajo: {names(row.minPerspectives)}</span></>}</td>
           </tr>;
         })}</tbody>
-        <tfoot><tr><th scope="row" className="p-2">Índice por perspectiva</th>{PERSPECTIVES.map(code => { const index = view.perspectiveIndexes.find(row => row.perspectiveCode === code)!; return <td key={code} className="p-2">{index.status === "COMPLETE" ? <><span className="font-semibold">{integer(index.valueExact)}</span><span className="block text-xs text-slate-500">{HEALTH_LABELS[index.healthLevel ?? 0]}</span></> : <span className="text-xs text-slate-600">{index.status === "NP" ? "NP — no aplicada" : `ND — ${index.validElementCount} de 8 Elementos con resultado`}</span>}</td>; })}<td /><td /></tr></tfoot>
+        <tfoot><tr><th scope="row" className="p-2"><span className="inline-flex items-center gap-2">Índice por perspectiva <HelpTip term="perspectiveIndex" /></span></th>{PERSPECTIVES.map(code => { const index = view.perspectiveIndexes.find(row => row.perspectiveCode === code)!; return <td key={code} className="p-2">{index.status === "COMPLETE" ? <><span className="font-semibold">{integer(index.valueExact)}</span><span className="block text-xs text-slate-500">{HEALTH_LABELS[index.healthLevel ?? 0]}</span></> : <span className="text-xs text-slate-600">{index.status === "NP" ? "NP — no aplicada" : `ND — ${index.validElementCount} de 8 Elementos con resultado`}</span>}</td>; })}<td /><td /></tr></tfoot>
       </table></div>
       <p className="mt-2 text-xs text-slate-500">Cada celda es el resultado de una perspectiva en un Elemento (RP) y cuántas de sus personas analizadas tienen resultado válido. RP y RI se muestran con un decimal; la brecha y el Global como enteros (un .5 exacto baja). La brecha mide la distancia entre la perspectiva que califica más alto y la que califica más bajo: indica desacuerdo, no salud.</p>
+      <p className="mt-1 flex items-center gap-2 text-xs text-slate-500">¿Qué significan ND y NP en una celda? <HelpTip term="ndnp" /></p>
       {view.verdicts.some(row => row.reservations) && <div className="mt-3 text-sm"><h4 className="font-semibold">Reservas del dictamen de calidad</h4><ul className="mt-1 list-disc pl-5">{view.verdicts.filter(row => row.reservations).map(row => <li key={`${row.perspectiveCode}-${row.elementCode}`}>{row.perspectiveCode ? PERSPECTIVE_NAMES[row.perspectiveCode] : "Global"}{row.elementCode ? ` · ${ELEMENT_NAMES[row.elementCode as Element]}` : ""} ({row.verdict}): {row.reservations}</li>)}</ul></div>}
     </section>
 
     {message && <p role="status" className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg">{message}</p>}
-    <section className={card}><h3 className="text-lg font-semibold">Patrones de triangulación</h3>
+    <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Patrones de triangulación</h3><HelpTip term="pattern" /></div>
       <p className="mt-1 text-sm text-slate-600">El consultor registra el patrón con su justificación. El sistema no asigna patrones ni infiere causas.</p>
       <div className="mt-3 space-y-3">{ELEMENTS.map(element => <PatternRow key={element} element={element} current={view.patterns.find(row => row.elementCode === element)} busy={busy} save={data => save("patterns", { elementCode: element, ...data }, `Patrón de ${ELEMENT_NAMES[element]} registrado.`)} />)}</div>
     </section>
 
-    <section className={card}><h3 className="text-lg font-semibold">Revisión de divulgación</h3>
+    <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Revisión de divulgación</h3><HelpTip term="disclosure" /></div>
       <p className="mt-1 text-sm text-slate-600">Ocultar una perspectiva no la quita del cálculo: RI, BT y Global no cambian.</p>
       <div className="mt-3 space-y-3">{applied.map(perspective => <DisclosureRow key={perspective} perspective={perspective} current={view.disclosures.find(row => row.perspectiveCode === perspective)} warnings={view.warnings.filter(row => row.perspectiveCode === perspective)} busy={busy} save={data => save("disclosure", { perspectiveCode: perspective, ...data }, `Divulgación de ${PERSPECTIVE_NAMES[perspective]} registrada.`)} />)}</div>
     </section>
@@ -137,7 +139,7 @@ function QualitativeSection({ assessmentId, runId, applied, busy, save }: { asse
     if (response.ok) setItems(await response.json() as Qualitative[]); else setError("No se pudo cargar la evidencia cualitativa.");
     setLoading(false);
   }
-  return <section className={card}><h3 className="text-lg font-semibold">Evidencia cualitativa</h3>
+  return <section className={card}><div className="flex items-center gap-2"><h3 className="text-lg font-semibold">Evidencia cualitativa</h3><HelpTip term="qualitative" /></div>
     <p className="mt-1 text-sm text-slate-600">Respuestas abiertas de los cuestionarios analizados, sin identificadores y en orden aleatorio. El texto original nunca se modifica.</p>
     <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
       <label className="text-sm font-medium">Perspectiva<select value={perspective} onChange={event => setPerspective(event.target.value)} className={field}><option value="">Todas</option>{applied.map(code => <option key={code} value={code}>{PERSPECTIVE_NAMES[code]}</option>)}</select></label>
